@@ -1,0 +1,11 @@
+{
+  "name": "checklist-server",
+  "version": "1.0.0",
+  "scripts": {
+    "server": "node server.js",
+    "screenshot": "node screenshot.js"
+  },
+  "dependencies": {
+    "puppeteer": "^24.42.0"
+  }
+}

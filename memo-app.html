@@ -1,0 +1,295 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEXAWORK CONTACT</title>
+    <style>
+        body{
+            padding: 30px;
+        }
+        form {
+            font-size: 18px;
+            line-height: 1.8;
+        }
+        .rows {
+            display: grid;
+            /* 左カラムは内容に合わせて自動幅、右カラムは残り幅を占める（行いっぱいに広がる） */
+            grid-template-columns: auto 1fr;
+            gap: 12px;
+            align-items: center;
+            row-gap: 6px;
+        }
+        .row {
+            display: contents;
+        }
+        .left {
+            /* 左のリンクを折り返さず全表示する（横に伸びるためメモ幅を縮める） */
+            white-space: nowrap;
+            overflow: visible;
+        }
+        .row .left a {
+            white-space: nowrap;
+        }
+        .row .right {
+            text-align: left;
+        }
+        /* 右カラム内の入力が常に利用可能な幅いっぱいに広がるようにする */
+        .rows .right {
+            min-width: 0; /* grid アイテムが縮むことを許可する（overflow 問題回避） */
+        }
+
+        /* 右カラム内の1行入力は折り返さず、行いっぱいに広げる */
+        .rows .right input[type="text"],
+        .rows .right input.memo {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* ただし textarea は複数行を許可する（改行・折り返しを有効に） */
+        .rows .right textarea {
+            white-space: normal;
+            overflow: auto;
+            text-overflow: clip;
+        }
+        .section-title {
+            grid-column: 1 / -1;
+            text-align: left;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            font-size: 1.2em;
+        }
+        input.memo {
+            width: 100%;
+            box-sizing: border-box;
+            /* 縦幅を約20%増加させる（既定より広め） */
+            padding: 10px;
+            height: calc(1.2em * 1.2 + 14px);
+            font-size: 1rem;
+            border-radius: 4px;
+            border: 1px solid #abf;
+        }
+        /* フォーカス時の色の濃さを半分にする（ハイライトを弱める） */
+        input.memo:focus,
+        .rows .right input[type="text"]:focus {
+            outline: none;
+            border-color: rgba(170,187,255,1); /* より濃く */
+            box-shadow: 0 0 0 3px rgba(170,187,255,0.28); /* ハイライトをやや強めに */
+        }
+        /* テキスト入力（1行メモ）はブロック表示かつ幅いっぱいに広げる */
+        .row .right input.memo,
+        .rows .right input.memo {
+            display: block;
+            width: 100%;
+            min-width: 0;
+        }
+        textarea.memo {
+            width: 100%;
+            box-sizing: border-box;
+            /* 上部メモを4行分表示するため最小高さを確保 */
+            padding: 10px;
+            min-height: calc(1.2em * 4 + 14px);
+            font-size: 1rem;
+            border-radius: 4px;
+            border: 1px solid #abf;
+            resize: vertical;
+        }
+        /* プレースホルダーを薄くする（textarea と input）
+           透明度を約25%にして視認性を下げる */
+        textarea::placeholder,
+        input::placeholder {
+            color: rgba(0,0,0,0.25);
+        }
+        /* クロスブラウザ対応（古いブラウザ用） */
+        textarea::-webkit-input-placeholder, input::-webkit-input-placeholder { color: rgba(0,0,0,0.25); }
+        textarea:-ms-input-placeholder, input:-ms-input-placeholder { color: rgba(0,0,0,0.25); }
+        textarea.memo:focus {
+            outline: none;
+            border-color: rgba(170,187,255,1);
+            box-shadow: 0 0 0 3px rgba(170,187,255,0.28);
+        }
+        /* ページ下部用の10行メモ（cookieで保存される） */
+        textarea.cocky {
+            min-height: calc(1.2em * 10 + 14px);
+            margin-top: 18px;
+        }
+        hr {
+            grid-column: 1 / -1;
+            border: none;
+            border-top: 1px solid #ccc;
+            margin: 12px 0;
+        }
+        .row{
+            width: 100%;
+            border: #000 3px solid;
+            border-bottom: #000 3px solid;
+            padding-bottom: 4px;
+            padding: 4px;
+        }
+        /* show_area 表示用 */
+        /* #show_area{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; margin-left:12px; }
+        #show_area .show-col{ padding:6px 10px; border:1px solid #ddd; border-radius:6px; background:#fafafa; min-width:80px; max-width:320px; word-break:break-word; } */
+    </style>
+</head>
+<body>
+<form action="">
+    <button id="show">show</button><div id="show_area"></div>
+    <!-- トップに追加: チェックボックス3つ + 1行メモ を10行（自動保存対応） -->
+    <div class="rows" style="margin-bottom:12px;">
+        <!-- 10 行をループで挿入（手動で列挙） -->
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+    </div>
+
+    <textarea class="memo" placeholder="メモ" rows="4"></textarea>
+<div class="section-title">コンタクト　(編集用html)</div>
+<div class="rows">
+<div class="row"><div class="left">作業<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="01.contact_form.blade.html">01.contact_form.blade.html</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<div class="row"><div class="left">作業<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="02.contact_confirm.blade.html">02.contact_confirm.blade.html</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<div class="row"><div class="left">作業<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="03.contact_thanks.blade.html">03.contact_thanks.blade.html</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<div class="row"><div class="left">作業<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="04.error.blade.html">04.error.blade.html</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<hr>
+<div class="section-title">応募フォーム(編集用html)</div>
+<div class="row"><div class="left">作業<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="11.form.blade.html">11.form.blade.html</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<div class="row"><div class="left">作業<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="12.confirm.blade.html">12.confirm.blade.html</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<div class="row"><div class="left">作業<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="13.thanks.blade.html">13.thanks.blade.html</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<div class="row"><div class="left">作業<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="04.error.blade.html">04.error.blade.html</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<hr>
+<div class="section-title">DB (本番サーバ)</div>
+<div class="row"><div class="left">コンタクト　<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="http://www.hexawork.jp/inquiry">http://www.hexawork.jp/inquiry</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<div class="row"><div class="left">応募フォーム<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="http://www.hexawork.jp/recruit/apply?position_id=1">http://www.hexawork.jp/recruit/apply?position_id=1</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<hr>
+<div class="section-title" style="text-decoration:line-through;">html (現在未使用) 
+</div>
+<div class="row"><div class="left" style="text-decoration:line-through;">コンタクト　<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="http://www.hexawork.jp/apply.html">http://www.hexawork.jp/apply.html</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+<div class="row"><div class="left" style="text-decoration:line-through;">応募フォーム<input type="checkbox" name="" id=""> form<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""><a target="_blank" href="http://www.hexawork.jp/contact.html">http://www.hexawork.jp/contact.html</a></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+</div>
+<!-- ページ最下部メモ: 上エリアのカラム幅に合わせるため .rows の右カラムに配置 -->
+<textarea class="memo cocky" placeholder="ここにメモ（自動保存）" rows="10"></textarea>
+</form>
+
+
+<script>
+/*
+  このスクリプトの目的（日本語コメント）:
+  - ページ内のチェックボックスと ".memo"（入力／textarea）の状態を
+    クッキーに保存・復元する。
+  - ページ読み込み時に復元し、変更時に即座に保存することで
+    ブラウザ再読み込み後も状態が保持されるようにする。
+
+  実装のポイント:
+  - チェックボックスの状態は 'index_checkboxes'、メモは 'index_memos' という
+    クッキー名で JSON 文字列として保存する。
+  - 現在はフォーム内に存在する要素を想定しており、selector は
+    `form.querySelectorAll` を使用している。フォーム外へ移動した場合は selector を調整すること。
+  - 注意: クッキーは容量制限（ドメインあたり約 4KB 前後）があるため、
+    メモが多数・長文になる場合は `localStorage` 等への切り替えを検討する。
+*/
+
+document.addEventListener('DOMContentLoaded', function(){
+    // --- DOM 取得 ---
+    // このページは単一の form を用いる前提
+    const form = document.querySelector('form');
+    if (!form) return;
+
+    // フォーム内のすべてのチェックボックスを配列で取得
+    const checkboxes = Array.from(form.querySelectorAll('input[type="checkbox"]'));
+
+    // フォーム内の .memo 要素（input[type=text] と textarea の両方を想定）
+    // ※ ページ下部メモをフォーム外に置く場合はここを変更すること
+    const memos = Array.from(form.querySelectorAll('.memo'));
+
+    // クッキー名を定義しておく（変更する場合はここを編集）
+    const cookieName = 'index_checkboxes';
+    const cookieNameMemos = 'index_memos';
+
+    // --- クッキー操作ユーティリティ ---
+    // name: クッキー名、value: 保存する文字列、days: 有効日数
+    function setCookie(name, value, days) {
+        const d = new Date();
+        d.setTime(d.getTime() + (days*24*60*60*1000));
+        document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;expires=' + d.toUTCString();
+    }
+
+    // name を指定してクッキーを取得（見つからなければ null）
+    function getCookie(name) {
+        const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return match ? decodeURIComponent(match[2]) : null;
+    }
+
+    // --- チェックボックスの復元と保存 ---
+    // クッキーから保存された JSON を復元し、配列として扱う。失敗した場合は空配列にフォールバック。
+    let states = [];
+    try {
+        const raw = getCookie(cookieName);
+        states = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        states = [];
+    }
+
+    // 各チェックボックスにインデックスを割り当て、復元と change イベント登録を行う
+    checkboxes.forEach((cb, i) => {
+        if (typeof states[i] !== 'undefined') cb.checked = !!states[i];
+        cb.dataset.idx = i; // 保存配列の対応インデックス
+        cb.addEventListener('change', function() {
+            states[this.dataset.idx] = this.checked;
+            // 変更があるたびにクッキーへ保存（保存日数は 365 日）
+            setCookie(cookieName, JSON.stringify(states), 365);
+        });
+    });
+
+    // --- メモ（テキスト）の復元と保存 ---
+    let memoStates = [];
+    try {
+        const raw = getCookie(cookieNameMemos);
+        memoStates = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        memoStates = [];
+    }
+
+    // 各メモ要素にインデックスを割り当て、復元と input イベント登録を行う
+    memos.forEach((m, i) => {
+        if (typeof memoStates[i] !== 'undefined') m.value = memoStates[i];
+        m.dataset.idx = i;
+        m.addEventListener('input', function() {
+            memoStates[this.dataset.idx] = this.value;
+            // 入力があるたびにクッキーへ保存
+            setCookie(cookieNameMemos, JSON.stringify(memoStates), 365);
+        });
+    });
+
+    // --- show ボタン: input[type=text] の値をまとめて show_area に表示 ---
+    const showBtn = document.getElementById('show');
+    const showArea = document.getElementById('show_area');
+    if (showBtn && showArea) {
+        showBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // 既存表示をクリア
+            showArea.innerHTML = '';
+            // 右カラムの1行入力をすべて取得して1つずつ div でラップして表示
+            const inputs = Array.from(document.querySelectorAll('.rows .right input[type="text"]'));
+            inputs.forEach((inp, idx) => {
+                const d = document.createElement('div');
+                d.className = 'show-col';
+                d.textContent = "・"+inp.value || '';
+                showArea.appendChild(d);
+            });
+        });
+    }
+});
+</script>
+
+</body>
+</html>
