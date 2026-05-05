@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HEXAWORK ツール一覧</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 48px 32px;
+      max-width: 640px;
+      margin: 0 auto;
+      color: #222;
+      line-height: 1.7;
+    }
+    h1 {
+      font-size: 1.4em;
+      margin-bottom: 32px;
+      color: #333;
+    }
+    .card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      border: 1px solid #dde;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .card:hover {
+      background: #f4f6ff;
+      border-color: #99aaee;
+    }
+    .card-title {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #2244cc;
+      margin-bottom: 6px;
+    }
+    .card-desc {
+      font-size: 0.92em;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>HEXAWORK ツール一覧</h1>
+
+  <a class="card" href="/memo-app.html">
+    <div class="card-title">作業チェックリスト</div>
+    <div class="card-desc">
+      HEXAWORK CONTACT プロジェクト用のチェックリスト。予定・作業・作業終了・確認の4項目とメモ欄を行ごとに管理。チェック状態は自動保存されます。
+    </div>
+  </a>
+
+  <a class="card" href="/screen-check.html">
+    <div class="card-title">スクリーンチェックリスト</div>
+    <div class="card-desc">
+      外部サイトのテスト確認用チェックリスト。URLと画面名を screens.csv で管理し、予定・作業・作業終了・確認のチェックとメモを記録。📷 ボタンでヘッドレスブラウザによるスクリーンショット撮影・サムネイル表示ができます。
+    </div>
+  </a>
+</body>
+</html>
