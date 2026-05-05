@@ -121,15 +121,11 @@
             padding: 4px;
             border-radius: 3px;
         }
-        /* show_area 表示用 */
-        /* #show_area{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; margin-left:12px; }
-        #show_area .show-col{ padding:6px 10px; border:1px solid #ddd; border-radius:6px; background:#fafafa; min-width:80px; max-width:320px; word-break:break-word; } */
     </style>
 </head>
 <body>
 <form action="">
-    <button id="show">show</button><div id="show_area"></div>
-    <!-- トップに追加: チェックボックス3つ + 1行メモ を10行（自動保存対応） -->
+<!-- トップに追加: チェックボックス3つ + 1行メモ を10行（自動保存対応） -->
     <div id="dynamic-rows" class="rows" style="margin-bottom:12px;">
         <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
         <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
@@ -303,21 +299,6 @@ document.addEventListener('DOMContentLoaded', function(){
         saveAll(); // 削除後の状態でクッキーを上書き
     });
 
-    // --- show ボタン ---
-    const showBtn  = document.getElementById('show');
-    const showArea = document.getElementById('show_area');
-    if (showBtn && showArea) {
-        showBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            showArea.innerHTML = '';
-            Array.from(document.querySelectorAll('.rows .right input[type="text"]')).forEach(inp => {
-                const d = document.createElement('div');
-                d.className = 'show-col';
-                d.textContent = '・' + inp.value;
-                showArea.appendChild(d);
-            });
-        });
-    }
 });
 </script>
 

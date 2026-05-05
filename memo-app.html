@@ -128,15 +128,11 @@
             padding-bottom: 4px;
             padding: 4px;
         }
-        /* show_area 表示用 */
-        /* #show_area{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; margin-left:12px; }
-        #show_area .show-col{ padding:6px 10px; border:1px solid #ddd; border-radius:6px; background:#fafafa; min-width:80px; max-width:320px; word-break:break-word; } */
     </style>
 </head>
 <body>
 <form action="">
-    <button id="show">show</button><div id="show_area"></div>
-    <!-- トップに追加: チェックボックス3つ + 1行メモ を10行（自動保存対応） -->
+<!-- トップに追加: チェックボックス3つ + 1行メモ を10行（自動保存対応） -->
     <div class="rows" style="margin-bottom:12px;">
         <!-- 10 行をループで挿入（手動で列挙） -->
         <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
@@ -270,24 +266,6 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     });
 
-    // --- show ボタン: input[type=text] の値をまとめて show_area に表示 ---
-    const showBtn = document.getElementById('show');
-    const showArea = document.getElementById('show_area');
-    if (showBtn && showArea) {
-        showBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            // 既存表示をクリア
-            showArea.innerHTML = '';
-            // 右カラムの1行入力をすべて取得して1つずつ div でラップして表示
-            const inputs = Array.from(document.querySelectorAll('.rows .right input[type="text"]'));
-            inputs.forEach((inp, idx) => {
-                const d = document.createElement('div');
-                d.className = 'show-col';
-                d.textContent = "・"+inp.value || '';
-                showArea.appendChild(d);
-            });
-        });
-    }
 });
 </script>
 

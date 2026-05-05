@@ -10,14 +10,74 @@ const MIME = {
   '.css':  'text/css; charset=utf-8',
   '.js':   'text/javascript; charset=utf-8',
   '.json': 'application/json',
+  '.csv':  'text/csv; charset=utf-8',
   '.png':  'image/png',
   '.jpg':  'image/jpeg',
   '.svg':  'image/svg+xml',
   '.ico':  'image/x-icon',
 };
 
-http.createServer((req, res) => {
+// POST ボディを読む
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
+// /screenshot エンドポイント
+async function handleScreenshot(req, res) {
+  try {
+    const body = JSON.parse(await readBody(req));
+    const { id, name, url } = body;
+    if (!url) { res.writeHead(400); res.end('url required'); return; }
+
+    const puppeteer = require('puppeteer');
+    const screenshotsDir = path.join(ROOT, 'SCREENSHOTS');
+    if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir);
+
+    // ファイル名: {id}_{name}.png（日本語をそのまま使用）
+    const safeName = String(name).replace(/[\/\\:*?"<>|]/g, '_');
+    const filename = `${id}_${safeName}.png`;
+    const outPath = path.join(screenshotsDir, filename);
+
+    const browser = await puppeteer.launch({
+      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      args: ['--no-sandbox'],
+    });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 900 });
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.screenshot({ path: outPath, fullPage: true });
+    await browser.close();
+
+    const webPath = '/SCREENSHOTS/' + encodeURIComponent(filename);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ path: webPath, filename }));
+  } catch (e) {
+    console.error(e);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+http.createServer(async (req, res) => {
+  // CORS ヘッダー
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+
+  // POST /screenshot
+  if (req.method === 'POST' && req.url === '/screenshot') {
+    await handleScreenshot(req, res);
+    return;
+  }
+
   let urlPath = req.url.split('?')[0];
+
   if (urlPath === '/') {
     const files = fs.readdirSync(ROOT).filter(f => !f.startsWith('.'));
     const items = files.map(f => `<li><a href="/${f}">${f}</a></li>`).join('\n');
@@ -26,7 +86,7 @@ http.createServer((req, res) => {
     return;
   }
 
-  const filePath = path.join(ROOT, urlPath);
+  const filePath = path.join(ROOT, decodeURIComponent(urlPath));
 
   // ルートディレクトリ外へのアクセスを禁止
   if (!filePath.startsWith(ROOT + path.sep) && filePath !== ROOT) {

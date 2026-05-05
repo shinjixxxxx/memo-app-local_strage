@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スクリーンチェックリスト</title>
+  <style>
+    body {
+      font-size: 15px;
+      padding: 24px;
+      font-family: sans-serif;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 1.3em;
+      margin-bottom: 16px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      vertical-align: middle;
+    }
+    th {
+      background: #f0f4ff;
+      white-space: nowrap;
+      text-align: center;
+    }
+    td.num {
+      text-align: center;
+      white-space: nowrap;
+      color: #888;
+      width: 2em;
+    }
+    td.name {
+      white-space: nowrap;
+    }
+    td.name a {
+      color: #2255cc;
+    }
+    td.cb {
+      text-align: center;
+      width: 3.5em;
+    }
+    td.cb input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    td.memo input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 4px 6px;
+      border: 1px solid #abf;
+      border-radius: 4px;
+      font-size: 0.95em;
+    }
+    td.memo input[type="text"]:focus {
+      outline: none;
+      border-color: rgba(170,187,255,1);
+      box-shadow: 0 0 0 3px rgba(170,187,255,0.28);
+    }
+    td.screenshot {
+      white-space: nowrap;
+      width: 160px;
+    }
+    .btn-ss {
+      padding: 4px 10px;
+      font-size: 0.9em;
+      cursor: pointer;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      background: #f8f8f8;
+    }
+    .btn-ss:hover { background: #e8e8ff; }
+    .btn-ss:disabled { opacity: 0.5; cursor: not-allowed; }
+    .thumb-wrap {
+      display: inline-block;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .thumb-wrap a img {
+      width: 80px;
+      height: 50px;
+      object-fit: cover;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      display: block;
+    }
+    .ss-error {
+      color: red;
+      font-size: 0.85em;
+      margin-left: 6px;
+    }
+    tr:hover td { background: #fafaff; }
+  </style>
+</head>
+<body>
+<h1>スクリーンチェックリスト</h1>
+<table id="checklist">
+  <thead>
+    <tr>
+      <th>No.</th>
+      <th>画面名</th>
+      <th>予定</th>
+      <th>作業</th>
+      <th>作業終了</th>
+      <th>確認</th>
+      <th>メモ</th>
+      <th>スクリーンショット</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+
+<script>
+(function () {
+  const LS_CB   = 'sc_checkboxes';
+  const LS_MEMO = 'sc_memos';
+  const LS_SS   = 'sc_screenshots';
+
+  function lsGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function lsSet(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) {}
+  }
+  function parseJSON(raw) {
+    try { return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; }
+  }
+
+  // 状態を全保存
+  function saveAll(rows) {
+    const cbs   = {};
+    const memos = {};
+    rows.forEach(({ id, tr }) => {
+      const checks = tr.querySelectorAll('input[type="checkbox"]');
+      cbs[id] = Array.from(checks).map(c => c.checked);
+      const memo = tr.querySelector('input[type="text"]');
+      memos[id] = memo ? memo.value : '';
+    });
+    lsSet(LS_CB,   JSON.stringify(cbs));
+    lsSet(LS_MEMO, JSON.stringify(memos));
+  }
+
+  function saveSS(ssMap) {
+    lsSet(LS_SS, JSON.stringify(ssMap));
+  }
+
+  // サムネイル要素を生成
+  function buildThumb(webPath) {
+    const wrap = document.createElement('span');
+    wrap.className = 'thumb-wrap';
+    const a = document.createElement('a');
+    a.href = webPath;
+    a.target = '_blank';
+    const img = document.createElement('img');
+    img.src = webPath;
+    a.appendChild(img);
+    wrap.appendChild(a);
+    return wrap;
+  }
+
+  // CSVパース（簡易版: カンマ区切り・ダブルクォート非対応）
+  function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    return lines.slice(1).map(line => {
+      const vals = line.split(',').map(v => v.trim());
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
+      return obj;
+    });
+  }
+
+  fetch('/screens.csv')
+    .then(r => r.text())
+    .then(text => {
+      const rows = parseCSV(text);
+      const cbStates   = parseJSON(lsGet(LS_CB));
+      const memoStates = parseJSON(lsGet(LS_MEMO));
+      const ssStates   = parseJSON(lsGet(LS_SS));
+      const ssMap      = Object.assign({}, ssStates);
+
+      const tbody = document.getElementById('tbody');
+      const rowRefs = [];
+
+      rows.forEach(row => {
+        const { id, name, url } = row;
+        const tr = document.createElement('tr');
+
+        // No.
+        const tdNum = document.createElement('td');
+        tdNum.className = 'num';
+        tdNum.textContent = id;
+        tr.appendChild(tdNum);
+
+        // 画面名（リンク）
+        const tdName = document.createElement('td');
+        tdName.className = 'name';
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.textContent = name;
+        tdName.appendChild(a);
+        tr.appendChild(tdName);
+
+        // チェックボックス × 4
+        const cbLabels = ['予定', '作業', '作業終了', '確認'];
+        const savedCbs = cbStates[id] || [false, false, false, false];
+        cbLabels.forEach((_, i) => {
+          const td = document.createElement('td');
+          td.className = 'cb';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = !!savedCbs[i];
+          cb.addEventListener('change', () => saveAll(rowRefs));
+          td.appendChild(cb);
+          tr.appendChild(td);
+        });
+
+        // メモ
+        const tdMemo = document.createElement('td');
+        tdMemo.className = 'memo';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'メモ';
+        input.value = memoStates[id] || '';
+        input.addEventListener('input', () => saveAll(rowRefs));
+        tdMemo.appendChild(input);
+        tr.appendChild(tdMemo);
+
+        // スクリーンショット
+        const tdSS = document.createElement('td');
+        tdSS.className = 'screenshot';
+
+        const btn = document.createElement('button');
+        btn.className = 'btn-ss';
+        btn.textContent = '📷 撮影';
+        tdSS.appendChild(btn);
+
+        // 既存サムネを復元
+        if (ssMap[id]) {
+          tdSS.appendChild(buildThumb(ssMap[id]));
+        }
+
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          btn.textContent = '撮影中…';
+          // 既存エラー・サムネ削除
+          tdSS.querySelectorAll('.ss-error, .thumb-wrap').forEach(el => el.remove());
+          try {
+            const res = await fetch('/screenshot', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id, name, url }),
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            ssMap[id] = data.path;
+            saveSS(ssMap);
+            tdSS.appendChild(buildThumb(data.path));
+          } catch (e) {
+            const err = document.createElement('span');
+            err.className = 'ss-error';
+            err.textContent = '失敗: ' + e.message;
+            tdSS.appendChild(err);
+          } finally {
+            btn.disabled = false;
+            btn.textContent = '📷 撮影';
+          }
+        });
+
+        tr.appendChild(tdSS);
+        tbody.appendChild(tr);
+        rowRefs.push({ id, tr });
+      });
+    })
+    .catch(err => {
+      document.getElementById('tbody').innerHTML =
+        '<tr><td colspan="8" style="color:red">screens.csv の読み込みに失敗しました: ' + err.message + '</td></tr>';
+    });
+})();
+</script>
+</body>
+</html>
