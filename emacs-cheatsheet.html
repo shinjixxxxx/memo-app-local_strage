@@ -12,7 +12,6 @@
       padding: 12px;
     }
 
-    /* 印刷時: A4 に2枚並べる */
     .page {
       display: flex;
       flex-direction: column;
@@ -21,7 +20,6 @@
       margin: 0 auto;
     }
 
-    /* 1枚のカード */
     .card {
       background: #fff;
       border-radius: 12px;
@@ -51,7 +49,6 @@
       font-size: 18px;
       font-weight: bold;
       flex-shrink: 0;
-      letter-spacing: -1px;
     }
     .card-header h1 {
       font-size: 15px;
@@ -65,7 +62,7 @@
       margin-top: 1px;
     }
 
-    /* グリッドレイアウト */
+    /* 3カラムグリッド */
     .sections {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -82,9 +79,8 @@
     .section-title {
       font-size: 9.5px;
       font-weight: bold;
-      text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 7px;
+      margin-bottom: 8px;
       padding-bottom: 5px;
       border-bottom: 1px solid #dde2f8;
       display: flex;
@@ -115,6 +111,87 @@
     .sec-edit   .section-title .icon { background: #d3f9d8; }
     .sec-edit   { border-color: #b2f2bb; }
 
+    /* ===== D-PAD ===== */
+    .dpad-block {
+      margin-bottom: 8px;
+    }
+    .dpad-ctrl-label {
+      font-size: 8.5px;
+      font-weight: bold;
+      color: #3b5bdb;
+      margin-bottom: 4px;
+      font-family: "SF Mono", "Menlo", monospace;
+    }
+    .dpad-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dpad {
+      display: grid;
+      grid-template-columns: 28px 28px 28px;
+      grid-template-rows: 28px 28px 28px;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .dpad-empty { /* 四隅の空白 */ }
+
+    /* 方向キー */
+    .dk {
+      background: #eef0ff;
+      border: 1.5px solid #90a0d8;
+      border-radius: 5px;
+      box-shadow: 0 2px 0 #7080c0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+    .dk .dk-arrow {
+      font-size: 8px;
+      color: #5566bb;
+      line-height: 1;
+    }
+    .dk .dk-letter {
+      font-family: "SF Mono", "Menlo", "Monaco", monospace;
+      font-size: 11px;
+      font-weight: bold;
+      color: #1e2a7a;
+      line-height: 1;
+    }
+
+    /* 中央の Ctrl ボタン */
+    .dk-center {
+      background: #3b5bdb;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 6.5px;
+      font-weight: bold;
+      color: #fff;
+      border: 1.5px solid #2244bb;
+      box-shadow: 0 2px 0 #1a3399;
+      font-family: "SF Mono", "Menlo", monospace;
+    }
+
+    /* D-pad 右の説明 */
+    .dpad-legend {
+      font-size: 9px;
+      color: #444;
+      line-height: 1.85;
+    }
+    .dpad-legend span { display: block; white-space: nowrap; }
+    .dpad-legend strong { color: #1e2a7a; }
+
+    /* 行頭・行末・単語移動 の区切り */
+    .dpad-divider {
+      border: none;
+      border-top: 1px dashed #c8d0f0;
+      margin: 6px 0;
+    }
+
     /* バインディング行 */
     .binding {
       display: flex;
@@ -141,7 +218,7 @@
       background: #fff;
       border: 1px solid #b0b8d8;
       border-radius: 4px;
-      box-shadow: 0 2px 0 #8892c0, 0 2px 0 #8892c0;
+      box-shadow: 0 2px 0 #8892c0;
       font-size: 9px;
       font-weight: bold;
       color: #2c3060;
@@ -154,11 +231,7 @@
     .key.ctrl { background: #eef0ff; border-color: #90a0d8; color: #1e2a7a; }
     .key.alt  { background: #f0fff4; border-color: #80c8a0; color: #1a5c30; }
 
-    .plus {
-      font-size: 9px;
-      color: #aaa;
-      font-weight: bold;
-    }
+    .plus { font-size: 9px; color: #aaa; font-weight: bold; }
 
     .desc {
       font-size: 10px;
@@ -180,37 +253,23 @@
     }
     .note-bar strong { color: #5c3c00; }
 
-    /* 区切り線（カード間） */
     .divider {
       border: none;
       border-top: 2px dashed #bbb;
       margin: 0;
     }
 
-    /* 印刷設定 */
     @media print {
-      body {
-        background: #fff;
-        padding: 0;
-      }
-      .page {
-        width: 100%;
-        gap: 0;
-      }
+      body { background: #fff; padding: 0; }
+      .page { width: 100%; gap: 0; }
       .card {
         border-radius: 0;
         box-shadow: none;
         padding: 14mm 16mm 12mm;
         page-break-inside: avoid;
       }
-      .divider {
-        border-color: #999;
-        margin: 0 16mm;
-      }
-      @page {
-        size: A4 portrait;
-        margin: 8mm;
-      }
+      .divider { border-color: #999; margin: 0 16mm; }
+      @page { size: A4 portrait; margin: 8mm; }
     }
   </style>
 </head>
@@ -231,24 +290,48 @@
 
       <!-- カーソル移動 -->
       <div class="section sec-move">
-        <div class="section-title"><span class="icon">→</span>カーソル移動</div>
+        <div class="section-title"><span class="icon">✛</span>カーソル移動</div>
 
-        <div class="binding">
-          <div class="keys"><span class="key ctrl">Ctrl</span><span class="plus">+</span><span class="key">F</span></div>
-          <div class="desc">1文字 <strong>前</strong>へ</div>
+        <!-- D-pad: P/N/F/B -->
+        <div class="dpad-block">
+          <div class="dpad-ctrl-label">Ctrl +</div>
+          <div class="dpad-wrap">
+            <div class="dpad">
+              <div class="dpad-empty"></div>
+              <div class="dk">
+                <div class="dk-arrow">↑</div>
+                <div class="dk-letter">P</div>
+              </div>
+              <div class="dpad-empty"></div>
+
+              <div class="dk">
+                <div class="dk-arrow">←</div>
+                <div class="dk-letter">B</div>
+              </div>
+              <div class="dk-center">Ctrl</div>
+              <div class="dk">
+                <div class="dk-letter">F</div>
+                <div class="dk-arrow">→</div>
+              </div>
+
+              <div class="dpad-empty"></div>
+              <div class="dk">
+                <div class="dk-letter">N</div>
+                <div class="dk-arrow">↓</div>
+              </div>
+              <div class="dpad-empty"></div>
+            </div>
+            <div class="dpad-legend">
+              <span>P → 1行 <strong>上</strong>へ</span>
+              <span>N → 1行 <strong>下</strong>へ</span>
+              <span>F → 1文字 <strong>前</strong>へ</span>
+              <span>B → 1文字 <strong>後ろ</strong>へ</span>
+            </div>
+          </div>
         </div>
-        <div class="binding">
-          <div class="keys"><span class="key ctrl">Ctrl</span><span class="plus">+</span><span class="key">B</span></div>
-          <div class="desc">1文字 <strong>後ろ</strong>へ</div>
-        </div>
-        <div class="binding">
-          <div class="keys"><span class="key ctrl">Ctrl</span><span class="plus">+</span><span class="key">P</span></div>
-          <div class="desc">1行 <strong>上</strong>へ</div>
-        </div>
-        <div class="binding">
-          <div class="keys"><span class="key ctrl">Ctrl</span><span class="plus">+</span><span class="key">N</span></div>
-          <div class="desc">1行 <strong>下</strong>へ</div>
-        </div>
+
+        <hr class="dpad-divider">
+
         <div class="binding">
           <div class="keys"><span class="key ctrl">Ctrl</span><span class="plus">+</span><span class="key">A</span></div>
           <div class="desc"><strong>行頭</strong>へ移動</div>
@@ -327,7 +410,7 @@
         </div>
       </div>
 
-    </div><!-- /sections -->
+    </div>
 
     <div class="note-bar">
       <strong>📌 ポイント:</strong>
@@ -352,24 +435,47 @@
     <div class="sections">
 
       <div class="section sec-move">
-        <div class="section-title"><span class="icon">→</span>カーソル移動</div>
+        <div class="section-title"><span class="icon">✛</span>カーソル移動</div>
 
-        <div class="binding">
-          <div class="keys"><span class="key ctrl">Ctrl</span><span class="plus">+</span><span class="key">F</span></div>
-          <div class="desc">1文字 <strong>前</strong>へ</div>
+        <div class="dpad-block">
+          <div class="dpad-ctrl-label">Ctrl +</div>
+          <div class="dpad-wrap">
+            <div class="dpad">
+              <div class="dpad-empty"></div>
+              <div class="dk">
+                <div class="dk-arrow">↑</div>
+                <div class="dk-letter">P</div>
+              </div>
+              <div class="dpad-empty"></div>
+
+              <div class="dk">
+                <div class="dk-arrow">←</div>
+                <div class="dk-letter">B</div>
+              </div>
+              <div class="dk-center">Ctrl</div>
+              <div class="dk">
+                <div class="dk-letter">F</div>
+                <div class="dk-arrow">→</div>
+              </div>
+
+              <div class="dpad-empty"></div>
+              <div class="dk">
+                <div class="dk-letter">N</div>
+                <div class="dk-arrow">↓</div>
+              </div>
+              <div class="dpad-empty"></div>
+            </div>
+            <div class="dpad-legend">
+              <span>P → 1行 <strong>上</strong>へ</span>
+              <span>N → 1行 <strong>下</strong>へ</span>
+              <span>F → 1文字 <strong>前</strong>へ</span>
+              <span>B → 1文字 <strong>後ろ</strong>へ</span>
+            </div>
+          </div>
         </div>
-        <div class="binding">
-          <div class="keys"><span class="key ctrl">Ctrl</span><span class="plus">+</span><span class="key">B</span></div>
-          <div class="desc">1文字 <strong>後ろ</strong>へ</div>
-        </div>
-        <div class="binding">
-          <div class="keys"><span class="key ctrl">Ctrl</span><span class="plus">+</span><span class="key">P</span></div>
-          <div class="desc">1行 <strong>上</strong>へ</div>
-        </div>
-        <div class="binding">
-          <div class="keys"><span class="key ctrl">Ctrl</span><span class="plus">+</span><span class="key">N</span></div>
-          <div class="desc">1行 <strong>下</strong>へ</div>
-        </div>
+
+        <hr class="dpad-divider">
+
         <div class="binding">
           <div class="keys"><span class="key ctrl">Ctrl</span><span class="plus">+</span><span class="key">A</span></div>
           <div class="desc"><strong>行頭</strong>へ移動</div>
@@ -446,7 +552,7 @@
         </div>
       </div>
 
-    </div><!-- /sections -->
+    </div>
 
     <div class="note-bar">
       <strong>📌 ポイント:</strong>
@@ -456,6 +562,6 @@
     </div>
   </div><!-- /card 2 -->
 
-</div><!-- /page -->
+</div>
 </body>
 </html>
