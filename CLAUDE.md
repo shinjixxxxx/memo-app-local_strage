@@ -10,10 +10,10 @@ HEXAWORK CONTACT プロジェクト用の単一ファイル HTML チェックリ
 
 ```bash
 npm run server
-# → http://localhost:2000/ で起動
+# → http://localhost:2001/ で起動
 ```
 
-`server.js` はポート 2000 の静的ファイルサーバ。`/` へのアクセスは `/__index.html` にリダイレクトされるため、`memo-app.html` を開くには `http://localhost:2000/memo-app.html` と直接指定する。
+`server.js` はポート 2001 の静的ファイルサーバ。`/` へのアクセスは `/__index.html` にリダイレクトされるため、`memo-app.html` を開くには `http://localhost:2001/memo-app.html` と直接指定する。
 
 ## アーキテクチャ
 
