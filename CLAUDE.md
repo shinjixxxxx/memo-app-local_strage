@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-HEXAWORK CONTACT プロジェクト用の単一ファイル HTML チェックリストツール（`memo-app.html`）です。チェックボックスの状態とメモ欄をクッキーで保持するブラウザベースの作業管理チェックリストです。
+HEXAWORK CONTACT プロジェクト用の単一ファイル HTML チェックリストツールです。チェックボックスの状態とメモ欄をクッキーで保持するブラウザベースの作業管理チェックリストです。
+
+**メインの編集対象ファイル: `memo-app_free-check-seet02.html`**（`memo-app_free-check-seet.html` からコピーして作成）
 
 ## 開発サーバの起動
 
