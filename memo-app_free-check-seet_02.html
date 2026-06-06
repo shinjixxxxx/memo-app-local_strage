@@ -121,6 +121,52 @@
             padding: 4px;
             border-radius: 3px;
         }
+
+        /* スマホ対応 */
+        @media (max-width: 640px) {
+            body {
+                padding: 10px;
+            }
+            form {
+                font-size: 16px;
+            }
+            #dynamic-rows .row {
+                flex-wrap: wrap;
+                gap: 4px;
+                padding: 6px;
+            }
+            .drag-handle {
+                font-size: 1.4em;
+                padding: 0 6px;
+            }
+            #dynamic-rows .row .left {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 6px;
+                white-space: normal;
+            }
+            #dynamic-rows .row .right {
+                width: 100%;
+            }
+            input[type="checkbox"] {
+                width: 22px;
+                height: 22px;
+                margin: 0 2px;
+            }
+            input.memo {
+                font-size: 16px; /* iOSズーム防止 */
+                padding: 8px;
+            }
+            textarea.memo {
+                font-size: 16px;
+            }
+            #btn-add-row, #btn-remove-row {
+                font-size: 1.4em;
+                padding: 6px 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -155,9 +201,9 @@ document.addEventListener('DOMContentLoaded', function(){
     const form = document.querySelector('form');
     if (!form) return;
 
-    const LS_CB   = 'free_sheet_checkboxes';
-    const LS_MEMO = 'free_sheet_memos';
-    const LS_ROWS = 'free_sheet_rows';
+    const LS_CB   = 'free_sheet_02_checkboxes';
+    const LS_MEMO = 'free_sheet_02_memos';
+    const LS_ROWS = 'free_sheet_02_rows';
 
     function parseJSON(raw) {
         try { return raw ? JSON.parse(raw) : []; } catch(e) { return []; }

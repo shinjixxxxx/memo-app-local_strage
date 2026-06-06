@@ -1,4 +1,4 @@
-# Local Storage メモアプリ
+﻿# Local Storage メモアプリ
 
 ブラウザの localStorage にデータを保存する、シンプルな作業管理ツール集です。  
 Node.js の静的ファイルサーバで動作し、インストール後すぐにブラウザから使えます。

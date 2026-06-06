@@ -178,94 +178,40 @@
 
 
 <script>
-/*
-  このスクリプトの目的（日本語コメント）:
-  - ページ内のチェックボックスと ".memo"（入力／textarea）の状態を
-    クッキーに保存・復元する。
-  - ページ読み込み時に復元し、変更時に即座に保存することで
-    ブラウザ再読み込み後も状態が保持されるようにする。
-
-  実装のポイント:
-  - チェックボックスの状態は 'index_checkboxes'、メモは 'index_memos' という
-    クッキー名で JSON 文字列として保存する。
-  - 現在はフォーム内に存在する要素を想定しており、selector は
-    `form.querySelectorAll` を使用している。フォーム外へ移動した場合は selector を調整すること。
-  - 注意: クッキーは容量制限（ドメインあたり約 4KB 前後）があるため、
-    メモが多数・長文になる場合は `localStorage` 等への切り替えを検討する。
-*/
-
 document.addEventListener('DOMContentLoaded', function(){
-    // --- DOM 取得 ---
-    // このページは単一の form を用いる前提
     const form = document.querySelector('form');
     if (!form) return;
 
-    // フォーム内のすべてのチェックボックスを配列で取得
     const checkboxes = Array.from(form.querySelectorAll('input[type="checkbox"]'));
-
-    // フォーム内の .memo 要素（input[type=text] と textarea の両方を想定）
-    // ※ ページ下部メモをフォーム外に置く場合はここを変更すること
     const memos = Array.from(form.querySelectorAll('.memo'));
 
-    // クッキー名を定義しておく（変更する場合はここを編集）
-    const cookieName = 'index_checkboxes';
-    const cookieNameMemos = 'index_memos';
+    const LS_CB    = 'memo_app_checkboxes';
+    const LS_MEMOS = 'memo_app_memos';
 
-    // --- クッキー操作ユーティリティ ---
-    // name: クッキー名、value: 保存する文字列、days: 有効日数
-    function setCookie(name, value, days) {
-        const d = new Date();
-        d.setTime(d.getTime() + (days*24*60*60*1000));
-        document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;expires=' + d.toUTCString();
+    function parseJSON(raw) {
+        try { return raw ? JSON.parse(raw) : []; } catch(e) { return []; }
     }
 
-    // name を指定してクッキーを取得（見つからなければ null）
-    function getCookie(name) {
-        const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-        return match ? decodeURIComponent(match[2]) : null;
-    }
+    let states     = parseJSON(localStorage.getItem(LS_CB));
+    let memoStates = parseJSON(localStorage.getItem(LS_MEMOS));
 
-    // --- チェックボックスの復元と保存 ---
-    // クッキーから保存された JSON を復元し、配列として扱う。失敗した場合は空配列にフォールバック。
-    let states = [];
-    try {
-        const raw = getCookie(cookieName);
-        states = raw ? JSON.parse(raw) : [];
-    } catch (e) {
-        states = [];
-    }
-
-    // 各チェックボックスにインデックスを割り当て、復元と change イベント登録を行う
     checkboxes.forEach((cb, i) => {
         if (typeof states[i] !== 'undefined') cb.checked = !!states[i];
-        cb.dataset.idx = i; // 保存配列の対応インデックス
+        cb.dataset.idx = i;
         cb.addEventListener('change', function() {
             states[this.dataset.idx] = this.checked;
-            // 変更があるたびにクッキーへ保存（保存日数は 365 日）
-            setCookie(cookieName, JSON.stringify(states), 365);
+            localStorage.setItem(LS_CB, JSON.stringify(states));
         });
     });
 
-    // --- メモ（テキスト）の復元と保存 ---
-    let memoStates = [];
-    try {
-        const raw = getCookie(cookieNameMemos);
-        memoStates = raw ? JSON.parse(raw) : [];
-    } catch (e) {
-        memoStates = [];
-    }
-
-    // 各メモ要素にインデックスを割り当て、復元と input イベント登録を行う
     memos.forEach((m, i) => {
         if (typeof memoStates[i] !== 'undefined') m.value = memoStates[i];
         m.dataset.idx = i;
         m.addEventListener('input', function() {
             memoStates[this.dataset.idx] = this.value;
-            // 入力があるたびにクッキーへ保存
-            setCookie(cookieNameMemos, JSON.stringify(memoStates), 365);
+            localStorage.setItem(LS_MEMOS, JSON.stringify(memoStates));
         });
     });
-
 });
 </script>
 
