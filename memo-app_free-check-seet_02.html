@@ -137,7 +137,10 @@
             }
             .drag-handle {
                 font-size: 1.4em;
-                padding: 0 6px;
+                padding: 4px 10px;
+                min-width: 36px;
+                text-align: center;
+                touch-action: none;
             }
             #dynamic-rows .row .left {
                 width: 100%;
@@ -233,23 +236,22 @@ document.addEventListener('DOMContentLoaded', function(){
         row.querySelectorAll('.memo').forEach(m => m.addEventListener('input', saveAll));
     }
 
-    // --- ドラッグ並び替え ---
+    // --- ドラッグ並び替え（PC: mouse / スマホ: touch 両対応）---
     function initDragSort(container) {
         let dragging = null;
 
+        // PC: mouse drag
         container.addEventListener('dragstart', e => {
             dragging = e.target.closest('.row');
             if (!dragging) return;
             e.dataTransfer.effectAllowed = 'move';
             setTimeout(() => dragging.classList.add('dragging'), 0);
         });
-
         container.addEventListener('dragend', () => {
             if (dragging) dragging.classList.remove('dragging');
             dragging = null;
             saveAll();
         });
-
         container.addEventListener('dragover', e => {
             e.preventDefault();
             if (!dragging) return;
@@ -261,6 +263,46 @@ document.addEventListener('DOMContentLoaded', function(){
             } else {
                 container.insertBefore(dragging, target.nextSibling);
             }
+        });
+
+        // スマホ: touch drag（ハンドルを長押し→スワイプで並び替え）
+        container.addEventListener('touchstart', e => {
+            if (!e.target.closest('.drag-handle')) return;
+            dragging = e.target.closest('.row');
+            if (!dragging) return;
+            e.preventDefault();
+            dragging.classList.add('dragging');
+        }, { passive: false });
+
+        container.addEventListener('touchmove', e => {
+            if (!dragging) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            dragging.style.visibility = 'hidden';
+            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+            dragging.style.visibility = '';
+            if (!el) return;
+            const target = el.closest('.row');
+            if (!target || target === dragging || !container.contains(target)) return;
+            const rect = target.getBoundingClientRect();
+            if (touch.clientY < rect.top + rect.height / 2) {
+                container.insertBefore(dragging, target);
+            } else {
+                container.insertBefore(dragging, target.nextSibling);
+            }
+        }, { passive: false });
+
+        container.addEventListener('touchend', () => {
+            if (!dragging) return;
+            dragging.classList.remove('dragging');
+            dragging = null;
+            saveAll();
+        });
+
+        container.addEventListener('touchcancel', () => {
+            if (!dragging) return;
+            dragging.classList.remove('dragging');
+            dragging = null;
         });
     }
 
