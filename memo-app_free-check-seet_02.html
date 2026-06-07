@@ -572,7 +572,7 @@
             <span class="ps-field-label">同期</span>
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <button type="button" id="ps-sync-now" class="ps-dialog-btn primary">同期する</button>
-                <button type="button" id="ps-pick-file" class="ps-dialog-btn" style="display:none;">同期ファイルを指定</button>
+                <button type="button" id="ps-pick-file" class="ps-dialog-btn" style="display:none;">別のファイルを選んで同期</button>
             </div>
             <div id="ps-sync-status" style="margin-top:8px; font-size:11px; color:darkcyan;">—</div>
         </div>
@@ -889,14 +889,31 @@ document.addEventListener('DOMContentLoaded', function(){
         if ((await handle.requestPermission(opts)) === 'granted') return true;
         return false;
     }
-    async function pickFile() {
-        // showSaveFilePicker は既存ファイル選択も可（選べば現内容を読んでからマージ→上書き）
-        fsHandle = await window.showSaveFilePicker({
-            suggestedName: SYNC_FILENAME,
-            types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
-        });
+    const JSON_TYPES = [{ description: 'JSON', accept: { 'application/json': ['.json'] } }];
+    // 既存の同期ファイルを「開く」（iCloud上の memo-sync を選ぶ。読み書き許可も取得）
+    async function openExistingFile() {
+        const [h] = await window.showOpenFilePicker({ types: JSON_TYPES, multiple: false });
+        fsHandle = h;
+        if (h.requestPermission) { try { await h.requestPermission({ mode: 'readwrite' }); } catch (e) {} }
         await idbSet('fileHandle', fsHandle);
         return fsHandle;
+    }
+    // 新規に同期ファイルを作成（まだファイルが無い最初の端末用）
+    async function createNewFile() {
+        fsHandle = await window.showSaveFilePicker({ suggestedName: SYNC_FILENAME, types: JSON_TYPES });
+        await idbSet('fileHandle', fsHandle);
+        return fsHandle;
+    }
+    // ファイル未指定時：既存を開く。キャンセルされたら新規作成を提案
+    async function ensureHandle() {
+        if (fsHandle) return fsHandle;
+        try { return await openExistingFile(); }
+        catch (e) {
+            if (confirm('同期ファイルが見つかりません。新規に作成しますか？\n（最初の1台目はこちら）')) {
+                return await createNewFile();
+            }
+            throw e;
+        }
     }
     async function readHandle(handle) {
         const file = await handle.getFile();
@@ -909,15 +926,17 @@ document.addEventListener('DOMContentLoaded', function(){
         await w.close();
     }
 
-    // Mac 経路：読み込み→マージ→反映→上書き
+    // Mac 経路：（必要ならファイル選択）読み込み→マージ→反映→上書き
+    // 戻り値: 取り込んだremoteのページ数（無ければ0）
     async function syncViaFSA() {
-        if (!fsHandle) await pickFile();                 // 初回はファイルを指定
+        await ensureHandle();                            // 既存を開く（無ければ新規作成）
         if (!(await ensurePermission(fsHandle))) throw new Error('ファイルへのアクセスが許可されませんでした');
         let remote = null;
         try { remote = await readHandle(fsHandle); } catch (e) { remote = null; }  // 空/新規は無視
         if (remote) importDocMerge(remote); else savePage(getActive());
         await writeHandle(fsHandle, exportData());
         markSynced();
+        return remote && Array.isArray(remote.pages) ? remote.pages.length : 0;
     }
 
     // iPad/iPhone 経路：input で読込 → ダウンロードで書き出し
@@ -948,6 +967,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if (remote) importDocMerge(remote); else savePage(getActive());
         downloadDoc(exportData());
         markSynced();
+        return remote && Array.isArray(remote.pages) ? remote.pages.length : 0;
     }
 
     // 公開: 同期する（端末に応じて経路選択）
@@ -1528,18 +1548,25 @@ document.addEventListener('DOMContentLoaded', function(){
         syncNowBtn.disabled = true; syncNowBtn.textContent = '同期中…';
         if (statusEl) statusEl.textContent = '同期中…';
         try {
-            await syncNow();
+            const n = await syncNow();
             await refreshSilentPermission();
+            if (statusEl) statusEl.textContent = (n ? ('取り込み＆書き出し完了（' + n + 'ページ）・') : '書き出し完了・') +
+                                                 (relTime(localStorage.getItem(K_LASTSYNC)) || 'たった今');
         } catch (e) {
             if (statusEl) statusEl.textContent = '同期に失敗: ' + (e && e.message ? e.message : e);
         } finally {
             syncNowBtn.disabled = false; syncNowBtn.textContent = orig;
         }
     });
-    // 同期ファイルを指定（Mac のみ）
+    // 同期ファイルを選び直す（Mac のみ）：iCloud上の既存ファイルを開いて即同期
     pickFileBtn.addEventListener('click', async () => {
-        try { await pickFile(); await refreshSilentPermission(); updateSyncStatus(); }
-        catch (e) { /* キャンセル等は無視 */ }
+        const statusEl = document.getElementById('ps-sync-status');
+        try {
+            await openExistingFile();
+            await refreshSilentPermission();
+            const n = await syncNow();
+            if (statusEl) statusEl.textContent = '指定ファイルと同期しました（' + n + 'ページ取り込み）';
+        } catch (e) { /* キャンセル等は無視 */ updateSyncStatus(); }
     });
 
     applyTitle(localStorage.getItem(K_TITLE)); // 保存済みタイトルを適用
