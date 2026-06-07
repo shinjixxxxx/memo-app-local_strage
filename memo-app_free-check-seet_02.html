@@ -1174,14 +1174,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 menu.type = 'button';
                 menu.className = 'ps-btn ps-menu';
                 menu.textContent = '☰';
-                menu.dataset.tip = '設定';
                 menu.addEventListener('click', openSettings);
                 row.appendChild(menu);
             } else {
                 const handle = document.createElement('span');
                 handle.className = 'ps-handle';
                 handle.textContent = '⠿';
-                handle.dataset.tip = 'ドラッグで並び替え';
                 row.appendChild(handle);
             }
 
@@ -1190,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', function(){
             name.type = 'button';
             name.className = 'ps-name';
             name.textContent = p.name;
-            name.dataset.tip = p.name + ' に切替（ダブルクリックで改名）';
+            name.dataset.tip = (localStorage.getItem(pk(p.id, 'date')) || '') + ':' + p.name;
             name.addEventListener('click', () => switchPage(p.id));
             name.addEventListener('dblclick', (e) => { e.preventDefault(); beginRename(p.id); });
             row.appendChild(name);
@@ -1203,7 +1201,6 @@ document.addEventListener('DOMContentLoaded', function(){
             copy.type = 'button';
             copy.className = 'ps-btn ps-copy';
             copy.textContent = 'C';
-            copy.dataset.tip = 'このページをコピーして追加';
             copy.addEventListener('click', () => addPage(p.id));
             actions.appendChild(copy);
 
@@ -1212,12 +1209,10 @@ document.addEventListener('DOMContentLoaded', function(){
             if (isBase) {
                 last.className = 'ps-btn ps-add';
                 last.textContent = '+';
-                last.dataset.tip = '空ページを追加';
                 last.addEventListener('click', () => addPage(null));
             } else {
                 last.className = 'ps-btn ps-del';
                 last.textContent = '−';
-                last.dataset.tip = 'このページを削除';
                 last.addEventListener('click', () => deletePage(p.id));
             }
             actions.appendChild(last);
