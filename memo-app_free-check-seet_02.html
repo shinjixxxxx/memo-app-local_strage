@@ -171,6 +171,52 @@
             }
         }
 
+        /* ===== ページ下部タイトルバー [CLA] [日付] [タイトル] ===== */
+        #page-title-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 18px;
+        }
+        #page-title-bar .ptb-field {
+            box-sizing: border-box;
+            padding: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            border-radius: 4px;
+            border: 1px solid rgba(0,174,174,0.5);
+            background: #fff;
+            color: #1a1a1a;
+        }
+        #page-title-bar #ptb-date {
+            flex: 0 0 auto;
+            width: 130px;
+            text-align: center;
+        }
+        #page-title-bar #ptb-title {
+            flex: 1;
+            min-width: 0;
+        }
+        #page-title-bar #ptb-title:focus,
+        #page-title-bar #ptb-date:focus {
+            outline: none;
+            border-color: rgba(0,160,160,1);
+            box-shadow: 0 0 0 3px rgba(0,196,196,0.28);
+        }
+        #page-title-bar #ptb-clear {
+            flex: 0 0 auto;
+            padding: 10px 14px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,174,174,0.5);
+            background: #fff;
+            color: darkcyan;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background .2s;
+        }
+        #page-title-bar #ptb-clear:hover { background: rgba(0,174,174,0.12); }
+
         /* ===== ページ切替フロートUI（i-elements ティールナビ風 / 画面右下）===== */
         /* 枠線なし・アクティブはティールのフィル＋グロー・font-weight 400 */
         #page-switcher {
@@ -193,7 +239,7 @@
 
             display: flex;
             flex-direction: column;
-            min-width: 150px;
+            width: 150px;
             padding: 6px;
             background: var(--panel-bg);
             border-radius: var(--radius);
@@ -391,18 +437,33 @@
         #ps-settings-overlay .ps-dialog-btn:hover { background: rgba(0, 174, 174, 0.3); }
         #ps-settings-overlay .ps-dialog-btn.primary { background: rgba(0, 174, 174, 0.35); color: #fff; }
         #ps-settings-overlay .ps-dialog-btn.primary:hover { background: rgba(0, 174, 174, 0.5); }
+
+        /* ===== カスタムツールチップ ===== */
+        #tip {
+            position: fixed;
+            z-index: 99999;
+            pointer-events: none;
+            padding: 4px 8px;
+            background: rgba(3, 50, 50, 0.92);
+            color: darkcyan;
+            font-family: "Roboto","Noto Sans JP",system-ui,-apple-system,sans-serif;
+            font-size: 11px;
+            font-weight: 400;
+            border-radius: 4px;
+            box-shadow: 0 0 8px rgba(0,196,196,0.2);
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity .15s;
+            left: -9999px;
+            top: -9999px;
+        }
+        #tip.visible { opacity: 1; }
     </style>
 </head>
 <body>
 <form action="">
 <!-- トップに追加: チェックボックス3つ + 1行メモ を10行（自動保存対応） -->
     <div id="dynamic-rows" class="rows" style="margin-bottom:12px;">
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
         <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
         <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
         <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
@@ -417,10 +478,20 @@
 
     <textarea class="memo" placeholder="メモ" rows="4"></textarea>
 <textarea class="memo cocky" placeholder="ここにメモ（自動保存）" rows="10"></textarea>
+
+<!-- ページ下部: クリア / 日付 / ページタイトル -->
+<div id="page-title-bar">
+    <button type="button" id="ptb-clear" data-tip="このページのメモ内容をクリア">CLA</button>
+    <input type="text" id="ptb-date"  class="ptb-field" data-tip="日付">
+    <input type="text" id="ptb-title" class="ptb-field" placeholder="ページタイトル">
+</div>
 </form>
 
 <!-- ページ切替フロートUI（JSで描画） -->
 <div id="page-switcher" aria-label="ページ切替"></div>
+
+<!-- カスタムツールチップ -->
+<div id="tip" aria-hidden="true"></div>
 
 <!-- 設定ダイアログ -->
 <div id="ps-settings-overlay" aria-hidden="true">
@@ -445,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const dynamicRows = document.getElementById('dynamic-rows');
     const switcher    = document.getElementById('page-switcher');
-    const DEFAULT_ROW_COUNT = 12;
+    const DEFAULT_ROW_COUNT = 6;
 
     // ===== ページ単位 localStorage =====
     const K_PAGES  = 'fs02_pages';   // [{id, name}]（先頭が base）
@@ -454,6 +525,22 @@ document.addEventListener('DOMContentLoaded', function(){
 
     function parseJSON(raw, fb) {
         try { return raw ? JSON.parse(raw) : fb; } catch(e) { return fb; }
+    }
+
+    function todayStr() {
+        const d = new Date(), p = n => String(n).padStart(2,'0');
+        return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+    }
+
+    function refreshTitleBar(id) {
+        const titleEl = document.getElementById('ptb-title');
+        const dateEl  = document.getElementById('ptb-date');
+        if (!titleEl || !dateEl) return;
+        const p = getPages().find(x => x.id === id);
+        titleEl.value = p ? p.name : '';
+        let dt = localStorage.getItem(pk(id,'date'));
+        if (!dt) { dt = todayStr(); localStorage.setItem(pk(id,'date'), dt); }
+        dateEl.value = dt;
     }
 
     function getPages()  { return parseJSON(localStorage.getItem(K_PAGES), null); }
@@ -528,6 +615,7 @@ document.addEventListener('DOMContentLoaded', function(){
         const memoStates = parseJSON(localStorage.getItem(pk(id,'memo')), []);
         cbs.forEach((cb, i)  => { if (typeof cbStates[i]   !== 'undefined') cb.checked = !!cbStates[i]; });
         memos.forEach((m, i) => { if (typeof memoStates[i] !== 'undefined') m.value    = memoStates[i]; });
+        refreshTitleBar(id);
     }
 
     // ===== ページ操作 =====
@@ -567,7 +655,7 @@ document.addEventListener('DOMContentLoaded', function(){
         const page = pages.find(p => p.id === id);
         if (!page) return;
         if (!confirm('ページ「' + page.name + '」を削除しますか？\nこの操作は元に戻せません。')) return;
-        ['cb','memo','rows'].forEach(suf => localStorage.removeItem(pk(id, suf)));
+        ['cb','memo','rows','date'].forEach(suf => localStorage.removeItem(pk(id, suf)));
         const remaining = pages.filter(p => p.id !== id);
         setPages(remaining);
         if (getActive() === id) {
@@ -606,14 +694,14 @@ document.addEventListener('DOMContentLoaded', function(){
                 menu.type = 'button';
                 menu.className = 'ps-btn ps-menu';
                 menu.textContent = '☰';
-                menu.title = '設定';
+                menu.dataset.tip = '設定';
                 menu.addEventListener('click', openSettings);
                 row.appendChild(menu);
             } else {
                 const handle = document.createElement('span');
                 handle.className = 'ps-handle';
                 handle.textContent = '⠿';
-                handle.title = 'ドラッグで並び替え';
+                handle.dataset.tip = 'ドラッグで並び替え';
                 row.appendChild(handle);
             }
 
@@ -622,7 +710,7 @@ document.addEventListener('DOMContentLoaded', function(){
             name.type = 'button';
             name.className = 'ps-name';
             name.textContent = p.name;
-            name.title = p.name + ' に切替（ダブルクリックで改名）';
+            name.dataset.tip = p.name + ' に切替（ダブルクリックで改名）';
             name.addEventListener('click', () => switchPage(p.id));
             name.addEventListener('dblclick', (e) => { e.preventDefault(); beginRename(p.id); });
             row.appendChild(name);
@@ -635,7 +723,7 @@ document.addEventListener('DOMContentLoaded', function(){
             copy.type = 'button';
             copy.className = 'ps-btn ps-copy';
             copy.textContent = 'C';
-            copy.title = 'このページをコピーして追加';
+            copy.dataset.tip = 'このページをコピーして追加';
             copy.addEventListener('click', () => addPage(p.id));
             actions.appendChild(copy);
 
@@ -644,12 +732,12 @@ document.addEventListener('DOMContentLoaded', function(){
             if (isBase) {
                 last.className = 'ps-btn ps-add';
                 last.textContent = '+';
-                last.title = '空ページを追加';
+                last.dataset.tip = '空ページを追加';
                 last.addEventListener('click', () => addPage(null));
             } else {
                 last.className = 'ps-btn ps-del';
                 last.textContent = '−';
-                last.title = 'このページを削除';
+                last.dataset.tip = 'このページを削除';
                 last.addEventListener('click', () => deletePage(p.id));
             }
             actions.appendChild(last);
@@ -923,6 +1011,72 @@ document.addEventListener('DOMContentLoaded', function(){
     initPages();                 // ページ初期化・旧データ移行
     loadPage(getActive());       // アクティブページを描画
     renderSwitcher();            // フロートUI描画
+
+    // --- ページ下部タイトルバー（CLA / 日付 / タイトル）---
+    const ptbTitle = document.getElementById('ptb-title');
+    const ptbDate  = document.getElementById('ptb-date');
+    const ptbClear = document.getElementById('ptb-clear');
+
+    ptbTitle.addEventListener('input', () => {
+        const list = getPages();
+        const t = list.find(x => x.id === getActive());
+        if (t) { t.name = ptbTitle.value; setPages(list); renderSwitcher(); }
+    });
+    ptbDate.addEventListener('input', () => {
+        localStorage.setItem(pk(getActive(),'date'), ptbDate.value);
+    });
+    ptbClear.addEventListener('click', () => {
+        if (!confirm('このページのメモ内容をすべてクリアしますか？\nタイトルと日付は残ります。')) return;
+        form.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        form.querySelectorAll('.memo').forEach(m => m.value = '');
+        saveAll();
+    });
+
+    // --- カスタムツールチップ（data-tip 属性・JS委譲）---
+    const tip = document.getElementById('tip');
+    let tipTarget = null;
+
+    function positionTipByPanel(el) {
+        requestAnimationFrame(() => {
+            const panel = document.getElementById('page-switcher');
+            const pr = panel.getBoundingClientRect();
+            const tr = el.getBoundingClientRect();
+            const tw = tip.offsetWidth, th = tip.offsetHeight;
+            const x = pr.left - tw - 8;
+            const y = tr.top + (tr.height - th) / 2;
+            tip.style.left = Math.max(8, x) + 'px';
+            tip.style.top  = Math.max(8, Math.min(window.innerHeight - th - 8, y)) + 'px';
+        });
+    }
+
+    document.addEventListener('mouseover', e => {
+        const el = e.target.closest('[data-tip]');
+        if (!el) { tip.classList.remove('visible'); tipTarget = null; return; }
+        if (el === tipTarget) return;
+        tipTarget = el;
+        tip.textContent = el.dataset.tip;
+        tip.classList.add('visible');
+        if (el.closest('#page-switcher')) positionTipByPanel(el);
+    });
+    document.addEventListener('mousemove', e => {
+        if (!tipTarget || tipTarget.closest('#page-switcher')) return;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        let x = e.clientX + 12, y = e.clientY - 30;
+        const tw = tip.offsetWidth, th = tip.offsetHeight;
+        if (x + tw > vw - 8) x = e.clientX - tw - 12;
+        if (y < 8) y = e.clientY + 16;
+        if (y + th > vh - 8) y = e.clientY - th - 8;
+        tip.style.left = x + 'px';
+        tip.style.top  = y + 'px';
+    });
+    document.addEventListener('mouseout', e => {
+        const el = e.target.closest('[data-tip]');
+        if (!el) return;
+        if (!el.contains(e.relatedTarget)) {
+            tip.classList.remove('visible');
+            tipTarget = null;
+        }
+    });
 
     // --- ＋ボタン（行を追加）---
     document.getElementById('btn-add-row').addEventListener('click', function(e) {
