@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HEXAWORK CONTACT</title>
+    <title>MEMO SAVE IN LOCALSTORAGE</title>
     <style>
         body{
             padding: 30px;
@@ -309,6 +309,88 @@
         }
         #page-switcher .ps-btn:hover  { background: var(--accent); }
         #page-switcher .ps-btn:active { background: rgba(0, 174, 174, 0.45); }
+
+        /* ===== 設定ダイアログ（ティール / フェードイン・アウト）===== */
+        #ps-settings-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.45);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .25s ease, visibility .25s ease;
+            font-family: "Roboto","Noto Sans JP",system-ui,-apple-system,"Segoe UI",Arial,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+        }
+        #ps-settings-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        #ps-settings-overlay .ps-dialog {
+            box-sizing: border-box;
+            min-width: 280px;
+            max-width: 90vw;
+            padding: 18px;
+            background: rgba(3, 50, 50, 0.95);
+            border-radius: 6px;
+            box-shadow: 0 0 15px rgba(0, 196, 196, 0.2), 0 8px 24px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(2px);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 400;
+            transform: translateY(8px);
+            transition: transform .25s ease;
+        }
+        #ps-settings-overlay.open .ps-dialog { transform: translateY(0); }
+        #ps-settings-overlay .ps-dialog * { box-sizing: border-box; }
+        #ps-settings-overlay .ps-dialog-title {
+            font-size: 14px;
+            color: darkcyan;
+            margin-bottom: 14px;
+            font-weight: 400;
+        }
+        #ps-settings-overlay .ps-field { display: block; margin-bottom: 16px; }
+        #ps-settings-overlay .ps-field-label {
+            display: block;
+            font-size: 12px;
+            color: darkcyan;
+            margin-bottom: 6px;
+        }
+        #ps-settings-overlay .ps-field-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: rgba(0, 31, 31, 0.6);
+            color: #ffffff;
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 400;
+        }
+        #ps-settings-overlay .ps-field-input:focus { box-shadow: 0 0 0 2px rgba(0, 196, 196, 0.4); }
+        #ps-settings-overlay .ps-dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        #ps-settings-overlay .ps-dialog-btn {
+            border: none;
+            cursor: pointer;
+            padding: 6px 14px;
+            border-radius: 4px;
+            background: rgba(0, 31, 31, 0.6);
+            color: darkcyan;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 400;
+            transition: background .3s;
+        }
+        #ps-settings-overlay .ps-dialog-btn:hover { background: rgba(0, 174, 174, 0.3); }
+        #ps-settings-overlay .ps-dialog-btn.primary { background: rgba(0, 174, 174, 0.35); color: #fff; }
+        #ps-settings-overlay .ps-dialog-btn.primary:hover { background: rgba(0, 174, 174, 0.5); }
     </style>
 </head>
 <body>
@@ -339,6 +421,21 @@
 
 <!-- ページ切替フロートUI（JSで描画） -->
 <div id="page-switcher" aria-label="ページ切替"></div>
+
+<!-- 設定ダイアログ -->
+<div id="ps-settings-overlay" aria-hidden="true">
+    <div class="ps-dialog" role="dialog" aria-modal="true" aria-label="設定">
+        <div class="ps-dialog-title">設定</div>
+        <label class="ps-field">
+            <span class="ps-field-label">ページタイトル</span>
+            <input type="text" id="ps-page-title" class="ps-field-input" placeholder="ページタイトル">
+        </label>
+        <div class="ps-dialog-actions">
+            <button type="button" id="ps-settings-close" class="ps-dialog-btn">閉じる</button>
+            <button type="button" id="ps-settings-save" class="ps-dialog-btn primary">保存</button>
+        </div>
+    </div>
+</div>
 
 
 <script>
@@ -503,11 +600,15 @@ document.addEventListener('DOMContentLoaded', function(){
                 row.dataset.pageDraggable = '1';
             }
 
-            // ドラッグハンドル（baseは出さず、位置だけ空ける）
+            // 左端：base はハンバーガー（設定）、追加ページはドラッグハンドル
             if (isBase) {
-                const spacer = document.createElement('span');
-                spacer.className = 'ps-handle-spacer';
-                row.appendChild(spacer);
+                const menu = document.createElement('button');
+                menu.type = 'button';
+                menu.className = 'ps-btn ps-menu';
+                menu.textContent = '☰';
+                menu.title = '設定';
+                menu.addEventListener('click', openSettings);
+                row.appendChild(menu);
             } else {
                 const handle = document.createElement('span');
                 handle.className = 'ps-handle';
@@ -552,6 +653,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 last.addEventListener('click', () => deletePage(p.id));
             }
             actions.appendChild(last);
+
             row.appendChild(actions);
 
             list.appendChild(row);
@@ -778,6 +880,37 @@ document.addEventListener('DOMContentLoaded', function(){
             dragging = null;
         });
     }
+
+    // --- 設定ダイアログ（ページタイトル）---
+    const K_TITLE = 'fs02_title';
+    const overlay = document.getElementById('ps-settings-overlay');
+    const titleInput = document.getElementById('ps-page-title');
+
+    function applyTitle(t) { if (t) document.title = t; }
+    function openSettings() {
+        titleInput.value = localStorage.getItem(K_TITLE) || document.title || '';
+        overlay.classList.add('open');
+        overlay.setAttribute('aria-hidden', 'false');
+        setTimeout(() => titleInput.focus(), 60);
+    }
+    function closeSettings() {
+        overlay.classList.remove('open');
+        overlay.setAttribute('aria-hidden', 'true');
+    }
+    function saveSettings() {
+        const v = titleInput.value.trim();
+        localStorage.setItem(K_TITLE, v);
+        applyTitle(v || 'MEMO SAVE IN LOCALSTORAGE');
+        closeSettings();
+    }
+    document.getElementById('ps-settings-close').addEventListener('click', closeSettings);
+    document.getElementById('ps-settings-save').addEventListener('click', saveSettings);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSettings(); });
+    titleInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter')       { e.preventDefault(); saveSettings(); }
+        else if (e.key === 'Escape') { closeSettings(); }
+    });
+    applyTitle(localStorage.getItem(K_TITLE)); // 保存済みタイトルを適用
 
     // --- 起動 ---
     // フォーム下部のメモ（textarea 等、#dynamic-rows 外）の入力を保存（一度だけ登録）
