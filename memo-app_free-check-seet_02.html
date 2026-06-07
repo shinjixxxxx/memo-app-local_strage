@@ -576,6 +576,17 @@
             </div>
             <div id="ps-sync-status" style="margin-top:8px; font-size:11px; color:darkcyan;">—</div>
         </div>
+        <div class="ps-field">
+            <span class="ps-field-label">強制（マージしない・上書き）</span>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <button type="button" id="ps-force-write" class="ps-dialog-btn">強制書出</button>
+                <button type="button" id="ps-force-read"  class="ps-dialog-btn">強制読込</button>
+            </div>
+            <div style="margin-top:6px; font-size:10px; color:rgba(255,255,255,0.55); line-height:1.5;">
+                強制書出=この端末でファイルを上書き（削除を反映）／強制読込=ファイルでこの端末を上書き。<br>
+                ※削除を全端末へ：1台で強制書出→他端末は強制読込
+            </div>
+        </div>
         <div class="ps-dialog-actions">
             <button type="button" id="ps-settings-close" class="ps-dialog-btn">閉じる</button>
             <button type="button" id="ps-settings-save" class="ps-dialog-btn primary">保存</button>
@@ -973,6 +984,45 @@ document.addEventListener('DOMContentLoaded', function(){
     // 公開: 同期する（端末に応じて経路選択）
     async function syncNow() {
         return canFSA ? syncViaFSA() : syncViaDownload();
+    }
+
+    // 強制書出：この端末の内容でファイルを上書き（読込・マージなし）
+    // → 削除をファイルに反映したい時に使う。ファイル側の未取り込み分は消える
+    async function forceWrite() {
+        savePage(getActive());
+        if (canFSA) {
+            await ensureHandle();   // 無ければ既存を開く／新規作成
+            if (!(await ensurePermission(fsHandle))) throw new Error('ファイルへのアクセスが許可されませんでした');
+            await writeHandle(fsHandle, exportData());
+        } else {
+            downloadDoc(exportData());
+        }
+        markSynced();
+    }
+
+    // 強制読込：ファイルの内容でこの端末を上書き（マージなし・置換）
+    // → ファイルを正として丸ごと採用。この端末だけにあるメモは消える
+    async function forceRead() {
+        let remote = null;
+        if (canFSA) {
+            if (!fsHandle) await openExistingFile();   // 既存を開く（新規作成は提案しない）
+            if (!(await ensurePermission(fsHandle))) throw new Error('ファイルへのアクセスが許可されませんでした');
+            remote = await readHandle(fsHandle);
+        } else {
+            remote = await readViaInput();
+        }
+        if (!remote || !Array.isArray(remote.pages) || !remote.pages.length) {
+            throw new Error('読み込めるデータがありませんでした');
+        }
+        // 置換前のローカルページIDを控え、ファイルに無いページの孤立キーを掃除
+        const oldIds = (getPages() || []).map(p => p.id);
+        const newIds = new Set(remote.pages.map(p => p.id));
+        applyDoc(remote);   // マージせず置換
+        oldIds.forEach(id => {
+            if (!newIds.has(id)) ['cb', 'memo', 'rows', 'date'].forEach(s => localStorage.removeItem(pk(id, s)));
+        });
+        markSynced();
+        return remote.pages.length;
     }
 
     // ===== 未同期フラグ・同期状態・自動同期タイマー =====
@@ -1501,6 +1551,8 @@ document.addEventListener('DOMContentLoaded', function(){
     const intervalInput   = document.getElementById('ps-sync-interval');
     const syncNowBtn      = document.getElementById('ps-sync-now');
     const pickFileBtn     = document.getElementById('ps-pick-file');
+    const forceWriteBtn   = document.getElementById('ps-force-write');
+    const forceReadBtn    = document.getElementById('ps-force-read');
 
     function applyTitle(t) { if (t) document.title = t; }
     function openSettings() {
@@ -1562,6 +1614,40 @@ document.addEventListener('DOMContentLoaded', function(){
             const n = await syncNow();
             if (statusEl) statusEl.textContent = '指定ファイルと同期しました（' + n + 'ページ取り込み）';
         } catch (e) { /* キャンセル等は無視 */ updateSyncStatus(); }
+    });
+
+    // 強制書出（この端末でファイルを上書き・読込なし）
+    forceWriteBtn.addEventListener('click', async () => {
+        if (!confirm('【強制書出】この端末の内容でファイルを上書きします。\nファイル側にしかないメモ（他端末の未取り込み分）は消えます。\n\n実行しますか？')) return;
+        const statusEl = document.getElementById('ps-sync-status');
+        const o = forceWriteBtn.textContent;
+        forceWriteBtn.disabled = true; forceWriteBtn.textContent = '書込中…';
+        try {
+            await forceWrite();
+            await refreshSilentPermission();
+            if (statusEl) statusEl.textContent = '強制書出しました・' + (relTime(localStorage.getItem(K_LASTSYNC)) || 'たった今');
+        } catch (e) {
+            if (statusEl) statusEl.textContent = '強制書出に失敗: ' + (e && e.message ? e.message : e);
+        } finally {
+            forceWriteBtn.disabled = false; forceWriteBtn.textContent = o;
+        }
+    });
+
+    // 強制読込（ファイルでこの端末を上書き・マージなし）
+    forceReadBtn.addEventListener('click', async () => {
+        if (!confirm('【強制読込】ファイルの内容でこの端末を上書きします。\nこの端末だけにあるメモは消えます。\n\n実行しますか？')) return;
+        const statusEl = document.getElementById('ps-sync-status');
+        const o = forceReadBtn.textContent;
+        forceReadBtn.disabled = true; forceReadBtn.textContent = '読込中…';
+        try {
+            const n = await forceRead();
+            await refreshSilentPermission();
+            if (statusEl) statusEl.textContent = '強制読込しました（' + n + 'ページ採用）';
+        } catch (e) {
+            if (statusEl) statusEl.textContent = '強制読込に失敗: ' + (e && e.message ? e.message : e);
+        } finally {
+            forceReadBtn.disabled = false; forceReadBtn.textContent = o;
+        }
     });
 
     applyTitle(localStorage.getItem(K_TITLE)); // 保存済みタイトルを適用
