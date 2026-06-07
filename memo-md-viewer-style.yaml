@@ -1,0 +1,97 @@
+# ============================================================
+# i-elements.net ティールナビ スタイル解析
+# 取得元: http://www.i-elements.net/memo/menu.js（.menu_main_container / a.menu_button）
+# 上書き日: 2026-06-07
+# 用途: memo-app_free-check-seet_02.html の右下ページ切替フロートUIの基準スタイル
+# ※旧 MUI(Material UI)風スタイルから本ティールナビ風へ差し替え
+# ============================================================
+
+meta:
+  source: "menu.js（window.load で <style> を注入し、.menu_main_container にタブ型ボタンを並べる）"
+  concept:
+    - "ダークなティール（青緑）系の配色"
+    - "枠線は使わず、フィル＋グロー（box-shadow）で要素を表現"
+    - "半透明＋backdrop blur のフローティングパネル"
+    - "省スペース・コンパクト（フロートUIの核コンセプト）"
+
+# ============================================================
+# デザイントークン
+# ============================================================
+tokens:
+  font: '"Roboto","Noto Sans JP",system-ui,-apple-system,sans-serif'
+  font_weight: 400          # ボールドは使わない
+  radius: "6px"             # パネル・要素の角丸（元 menu は 8px → 本UIは 6px）
+  blur: "blur(2px)"         # backdrop-filter
+
+  color:
+    panel_bg: "rgba(3, 50, 50, 0.8)"      # パネル背景（濃いティール・半透明）
+    item_bg: "rgba(0, 31, 31, 0.5)"       # 各ボタン/項目の通常背景
+    accent: "rgba(0, 174, 174, 0.3)"      # ホバー / アクティブのフィル
+    glow: "rgba(0, 196, 196, 0.2)"        # グロー（box-shadow）
+    text: "darkcyan"                       # 通常テキスト（#008b8b 相当）
+    text_active: "#ffffff"                 # アクティブ/選択時テキスト
+    handle: "rgba(0, 174, 174, 0.6)"      # ドラッグハンドル
+    handle_dim: "rgba(0, 174, 174, 0.22)" # 無効ハンドル（base）
+
+  shadow:
+    glow_panel: "0 0 15px rgba(0, 196, 196, 0.2)"  # パネルの外周グロー
+    glow_active: "0 0 10px rgba(0, 196, 196, 0.2)" # アクティブ要素のグロー
+
+# ============================================================
+# 元 menu.js の定義（参考）
+# ============================================================
+source_css:
+  menu_main_container:
+    backdrop_filter: "blur(2px)"
+    box_shadow: "0 0 15px rgba(0, 196, 196, 0.2)"
+    background: "rgba(3, 50, 50, 0.8)"
+    border: "darkslategray solid 1px"   # ← 本UIでは枠線を撤去
+    color: "white"
+    padding: "3px"
+    border_radius: "8px"                # ← 本UIでは 6px
+    position: "fixed"
+  menu_button:
+    font_size: "0.8em"
+    flex: 1
+    padding: "3px"
+    border: "darkslategray solid 1px"   # ← 本UIでは枠線を撤去
+    border_radius: "8px"                # ← 本UIでは 6px
+    background: "rgba(0, 31, 31, 0.5)"
+    color: "darkcyan"
+    text_align: "center"
+    transition_duration: "0.3s"
+  menu_button_hover:
+    background: "rgba(0, 174, 174, 0.3)"
+
+# ============================================================
+# 本UI（#page-switcher）への適用ルール
+# ============================================================
+applied:
+  panel:
+    background: "rgba(3, 50, 50, 0.8)"
+    border: none                 # 枠線なし
+    border_radius: "6px"
+    box_shadow: "0 0 15px rgba(0, 196, 196, 0.2)"
+    backdrop_filter: "blur(2px)"
+    padding: "6px"
+    font_size: "12px"
+    font_weight: 400
+  item_default:                  # ページ名・C/-/+ ボタン
+    background: "rgba(0, 31, 31, 0.5)"
+    color: "darkcyan"
+    border: none
+    border_radius: "6px"
+    font_weight: 400
+    hover_background: "rgba(0, 174, 174, 0.3)"
+  item_active:                   # 選ばれているページ（枠線ではなくフィル＋グロー）
+    background: "rgba(0, 174, 174, 0.3)"
+    color: "#ffffff"
+    box_shadow: "0 0 10px rgba(0, 196, 196, 0.2)"
+    note: "ボールドにはしない（font-weight 400 のまま）"
+
+rules:
+  - "枠線（border）は全要素で使用しない"
+  - "選択状態は border ではなく accent フィル＋グローで表す"
+  - "font-weight は 400 固定（ボールド禁止）"
+  - "角丸はパネル・要素とも 6px"
+  - "コンパクト・省スペースを最優先する"

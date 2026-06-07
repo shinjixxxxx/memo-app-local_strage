@@ -64,14 +64,14 @@
             height: calc(1.2em * 1.2 + 14px);
             font-size: 1rem;
             border-radius: 4px;
-            border: 1px solid #abf;
+            border: 1px solid rgba(0,174,174,0.5);
         }
         /* フォーカス時の色の濃さを半分にする（ハイライトを弱める） */
         input.memo:focus,
         .rows .right input[type="text"]:focus {
             outline: none;
-            border-color: rgba(170,187,255,1); /* より濃く */
-            box-shadow: 0 0 0 3px rgba(170,187,255,0.28); /* ハイライトをやや強めに */
+            border-color: rgba(0,160,160,1); /* より濃く */
+            box-shadow: 0 0 0 3px rgba(0,196,196,0.28); /* ハイライトをやや強めに */
         }
         /* テキスト入力（1行メモ）はブロック表示かつ幅いっぱいに広げる */
         .row .right input.memo,
@@ -88,7 +88,7 @@
             min-height: calc(1.2em * 4 + 14px);
             font-size: 1rem;
             border-radius: 4px;
-            border: 1px solid #abf;
+            border: 1px solid rgba(0,174,174,0.5);
             resize: vertical;
         }
         /* プレースホルダーを薄くする（textarea と input）
@@ -102,8 +102,8 @@
         textarea:-ms-input-placeholder, input:-ms-input-placeholder { color: rgba(0,0,0,0.25); }
         textarea.memo:focus {
             outline: none;
-            border-color: rgba(170,187,255,1);
-            box-shadow: 0 0 0 3px rgba(170,187,255,0.28);
+            border-color: rgba(0,160,160,1);
+            box-shadow: 0 0 0 3px rgba(0,196,196,0.28);
         }
         /* ページ下部用の10行メモ（cookieで保存される） */
         textarea.cocky {
@@ -170,6 +170,145 @@
                 padding: 6px 16px;
             }
         }
+
+        /* ===== ページ切替フロートUI（i-elements ティールナビ風 / 画面右下）===== */
+        /* 枠線なし・アクティブはティールのフィル＋グロー・font-weight 400 */
+        #page-switcher {
+            --font: "Roboto","Noto Sans JP",system-ui,-apple-system,"Segoe UI",Arial,"Hiragino Kaku Gothic ProN","Meiryo","Noto Sans CJK JP",sans-serif;
+            --radius: 6px;
+            --panel-bg: rgba(3, 50, 50, 0.8);
+            --item-bg: rgba(0, 31, 31, 0.5);
+            --accent: rgba(0, 174, 174, 0.3);   /* アクティブ/ホバーのフィル */
+            --accent-strong: rgba(0, 196, 196, 0.2); /* グロー */
+            --text: darkcyan;
+            --text-active: #ffffff;
+            --handle: rgba(0, 174, 174, 0.6);
+            --handle-dim: rgba(0, 174, 174, 0.22);
+
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 9999;
+            box-sizing: border-box;
+
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+            padding: 6px;
+            background: var(--panel-bg);
+            border-radius: var(--radius);
+            box-shadow: 0 0 15px var(--accent-strong);
+            backdrop-filter: blur(2px);
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--text-active);
+        }
+        #page-switcher * { box-sizing: border-box; }
+
+        /* 行リスト（下=base、上=新しいページ。配列を逆順描画）*/
+        #page-switcher .ps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        /* 各ページ行 [⠿] [name] [C][-]（枠なし・省スペース）*/
+        #page-switcher .ps-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: opacity .15s;
+        }
+        #page-switcher .ps-row.ps-dragging { opacity: .4; }
+
+        /* ドラッグハンドル */
+        #page-switcher .ps-handle {
+            flex-shrink: 0;
+            width: 16px;
+            text-align: center;
+            color: var(--handle);
+            cursor: grab;
+            user-select: none;
+            font-size: 13px;
+            line-height: 1;
+            touch-action: none;
+        }
+        #page-switcher .ps-handle:active { cursor: grabbing; }
+        /* base 行のハンドル位置を空ける（ドラッグUIは出さない）*/
+        #page-switcher .ps-handle-spacer {
+            flex-shrink: 0;
+            width: 16px;
+        }
+
+        /* ページ名 [name]（クリックで切替・枠なし。ダブルクリックで改名）*/
+        #page-switcher .ps-name {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--text);
+            text-align: left;
+            padding: 3px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            transition: background .3s, color .3s, box-shadow .3s;
+        }
+        #page-switcher .ps-name:hover { background: var(--accent); }
+        /* アクティブ＝枠線ではなくティールのフィル＋グロー */
+        #page-switcher .ps-row.active .ps-name {
+            background: var(--accent);
+            color: var(--text-active);
+            box-shadow: 0 0 10px var(--accent-strong);
+        }
+
+        /* 改名用インライン入力 */
+        #page-switcher .ps-name-input {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            outline: none;
+            background: var(--accent);
+            color: var(--text-active);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 400;
+            padding: 3px 6px;
+            border-radius: 4px;
+        }
+
+        /* アクション群 [C][-]（枠線なし）*/
+        #page-switcher .ps-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        #page-switcher .ps-btn {
+            border: none;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            line-height: 1;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 400;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--item-bg);
+            color: var(--text);
+            transition: background .3s;
+        }
+        #page-switcher .ps-btn:hover  { background: var(--accent); }
+        #page-switcher .ps-btn:active { background: rgba(0, 174, 174, 0.45); }
     </style>
 </head>
 <body>
@@ -198,25 +337,359 @@
 <textarea class="memo cocky" placeholder="ここにメモ（自動保存）" rows="10"></textarea>
 </form>
 
+<!-- ページ切替フロートUI（JSで描画） -->
+<div id="page-switcher" aria-label="ページ切替"></div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
     const form = document.querySelector('form');
     if (!form) return;
 
-    const LS_CB   = 'free_sheet_02_checkboxes';
-    const LS_MEMO = 'free_sheet_02_memos';
-    const LS_ROWS = 'free_sheet_02_rows';
+    const dynamicRows = document.getElementById('dynamic-rows');
+    const switcher    = document.getElementById('page-switcher');
+    const DEFAULT_ROW_COUNT = 12;
 
-    function parseJSON(raw) {
-        try { return raw ? JSON.parse(raw) : []; } catch(e) { return []; }
+    // ===== ページ単位 localStorage =====
+    const K_PAGES  = 'fs02_pages';   // [{id, name}]（先頭が base）
+    const K_ACTIVE = 'fs02_active';  // アクティブページ id
+    const pk = (id, suf) => 'fs02_' + id + '_' + suf; // ページ別キー
+
+    function parseJSON(raw, fb) {
+        try { return raw ? JSON.parse(raw) : fb; } catch(e) { return fb; }
     }
 
-    function saveAll() {
+    function getPages()  { return parseJSON(localStorage.getItem(K_PAGES), null); }
+    function setPages(a) { localStorage.setItem(K_PAGES, JSON.stringify(a)); }
+    function getActive() { return localStorage.getItem(K_ACTIVE); }
+    function setActive(id){ localStorage.setItem(K_ACTIVE, id); }
+
+    // 初回起動 / 旧データ移行（旧 free_sheet_02_* を base ページへ）
+    function initPages() {
+        let pages = getPages();
+        if (!pages || !pages.length) {
+            const oldCb   = localStorage.getItem('free_sheet_02_checkboxes');
+            const oldMemo = localStorage.getItem('free_sheet_02_memos');
+            const oldRows = localStorage.getItem('free_sheet_02_rows');
+            if (oldCb   !== null) localStorage.setItem(pk('base','cb'),   oldCb);
+            if (oldMemo !== null) localStorage.setItem(pk('base','memo'), oldMemo);
+            if (oldRows !== null) localStorage.setItem(pk('base','rows'), oldRows);
+            pages = [{ id:'base', name:'mem' }];
+            setPages(pages);
+            setActive('base');
+        }
+        if (!getActive() || !pages.some(p => p.id === getActive())) {
+            setActive(pages[0].id);
+        }
+    }
+
+    function newId() {
+        return 'p' + Date.now().toString(36) + Math.floor(Math.random()*1e4).toString(36);
+    }
+    // 既存の "mem NN" の最大番号+1 で新名を生成
+    function nextPageName(pages) {
+        let max = 0;
+        pages.forEach(p => {
+            const m = /(\d+)\s*$/.exec(p.name || '');
+            if (m) max = Math.max(max, parseInt(m[1], 10));
+        });
+        return 'mem ' + String(max + 1).padStart(2, '0');
+    }
+
+    // ===== 保存・復元（アクティブページ対象）=====
+    function savePage(id) {
+        if (!id) return;
         const cbs   = Array.from(form.querySelectorAll('input[type="checkbox"]'));
         const memos = Array.from(form.querySelectorAll('.memo'));
-        localStorage.setItem(LS_CB,   JSON.stringify(cbs.map(cb => cb.checked)));
-        localStorage.setItem(LS_MEMO, JSON.stringify(memos.map(m => m.value)));
+        const rows  = dynamicRows.querySelectorAll('.row').length;
+        localStorage.setItem(pk(id,'cb'),   JSON.stringify(cbs.map(cb => cb.checked)));
+        localStorage.setItem(pk(id,'memo'), JSON.stringify(memos.map(m => m.value)));
+        localStorage.setItem(pk(id,'rows'), rows);
+    }
+    // 既存呼び出し（行追加/削除・ドラッグ・入力）との互換ラッパ
+    function saveAll() { savePage(getActive()); }
+
+    function loadPage(id) {
+        let rowCount = parseInt(localStorage.getItem(pk(id,'rows')), 10);
+        if (isNaN(rowCount)) rowCount = DEFAULT_ROW_COUNT;
+
+        // dynamic-rows を再構築
+        dynamicRows.innerHTML = '';
+        for (let i = 0; i < rowCount; i++) {
+            const r = createRow();
+            dynamicRows.appendChild(r);
+            bindRow(r);
+        }
+
+        // 一旦すべて初期化してから復元（前ページの値の残留を防ぐ）
+        const cbs   = Array.from(form.querySelectorAll('input[type="checkbox"]'));
+        const memos = Array.from(form.querySelectorAll('.memo'));
+        cbs.forEach(cb => cb.checked = false);
+        memos.forEach(m => m.value = '');
+
+        const cbStates   = parseJSON(localStorage.getItem(pk(id,'cb')),   []);
+        const memoStates = parseJSON(localStorage.getItem(pk(id,'memo')), []);
+        cbs.forEach((cb, i)  => { if (typeof cbStates[i]   !== 'undefined') cb.checked = !!cbStates[i]; });
+        memos.forEach((m, i) => { if (typeof memoStates[i] !== 'undefined') m.value    = memoStates[i]; });
+    }
+
+    // ===== ページ操作 =====
+    function switchPage(id) {
+        if (id === getActive()) return;
+        savePage(getActive());
+        setActive(id);
+        loadPage(id);
+        renderSwitcher();
+    }
+
+    // copyFromId を渡すとそのページを複製、null なら空ページを追加
+    function addPage(copyFromId) {
+        savePage(getActive());
+        const pages = getPages();
+        const id = newId();
+        const name = nextPageName(pages);
+        if (copyFromId) {
+            ['cb','memo','rows'].forEach(suf => {
+                const v = localStorage.getItem(pk(copyFromId, suf));
+                if (v !== null) localStorage.setItem(pk(id, suf), v);
+            });
+        } else {
+            localStorage.setItem(pk(id,'rows'), DEFAULT_ROW_COUNT);
+            localStorage.removeItem(pk(id,'cb'));
+            localStorage.removeItem(pk(id,'memo'));
+        }
+        pages.push({ id, name });
+        setPages(pages);
+        setActive(id);
+        loadPage(id);
+        renderSwitcher();
+    }
+
+    function deletePage(id) {
+        const pages = getPages();
+        const page = pages.find(p => p.id === id);
+        if (!page) return;
+        if (!confirm('ページ「' + page.name + '」を削除しますか？\nこの操作は元に戻せません。')) return;
+        ['cb','memo','rows'].forEach(suf => localStorage.removeItem(pk(id, suf)));
+        const remaining = pages.filter(p => p.id !== id);
+        setPages(remaining);
+        if (getActive() === id) {
+            const next = remaining[0].id;
+            setActive(next);
+            loadPage(next);
+        }
+        renderSwitcher();
+    }
+
+    // ===== フロートUI描画 =====
+    function renderSwitcher() {
+        const pages   = getPages();
+        const active  = getActive();
+        const baseId  = pages.length ? pages[0].id : null;
+        switcher.innerHTML = '';
+
+        const list = document.createElement('div');
+        list.className = 'ps-list';
+        switcher.appendChild(list);
+
+        // 上=新しいページ・下=base となるよう配列を逆順で描画
+        pages.slice().reverse().forEach((p) => {
+            const isBase = (p.id === baseId);
+            const row = document.createElement('div');
+            row.className = 'ps-row' + (p.id === active ? ' active' : '');
+            row.dataset.pageId = p.id;
+            if (!isBase) {
+                row.draggable = true;
+                row.dataset.pageDraggable = '1';
+            }
+
+            // ドラッグハンドル（baseは出さず、位置だけ空ける）
+            if (isBase) {
+                const spacer = document.createElement('span');
+                spacer.className = 'ps-handle-spacer';
+                row.appendChild(spacer);
+            } else {
+                const handle = document.createElement('span');
+                handle.className = 'ps-handle';
+                handle.textContent = '⠿';
+                handle.title = 'ドラッグで並び替え';
+                row.appendChild(handle);
+            }
+
+            // ページ名（クリックで切替・ダブルクリックで改名）
+            const name = document.createElement('button');
+            name.type = 'button';
+            name.className = 'ps-name';
+            name.textContent = p.name;
+            name.title = p.name + ' に切替（ダブルクリックで改名）';
+            name.addEventListener('click', () => switchPage(p.id));
+            name.addEventListener('dblclick', (e) => { e.preventDefault(); beginRename(p.id); });
+            row.appendChild(name);
+
+            // アクション [C][+ または -]
+            const actions = document.createElement('div');
+            actions.className = 'ps-actions';
+
+            const copy = document.createElement('button');
+            copy.type = 'button';
+            copy.className = 'ps-btn ps-copy';
+            copy.textContent = 'C';
+            copy.title = 'このページをコピーして追加';
+            copy.addEventListener('click', () => addPage(p.id));
+            actions.appendChild(copy);
+
+            const last = document.createElement('button');
+            last.type = 'button';
+            if (isBase) {
+                last.className = 'ps-btn ps-add';
+                last.textContent = '+';
+                last.title = '空ページを追加';
+                last.addEventListener('click', () => addPage(null));
+            } else {
+                last.className = 'ps-btn ps-del';
+                last.textContent = '−';
+                last.title = 'このページを削除';
+                last.addEventListener('click', () => deletePage(p.id));
+            }
+            actions.appendChild(last);
+            row.appendChild(actions);
+
+            list.appendChild(row);
+        });
+    }
+
+    // ページ名のインライン改名（ダブルクリック）
+    function beginRename(pageId) {
+        const row = switcher.querySelector('.ps-row[data-page-id="' + pageId + '"]');
+        if (!row || row.querySelector('.ps-name-input')) return;
+        const nameEl = row.querySelector('.ps-name');
+        if (!nameEl) return;
+        const p = getPages().find(x => x.id === pageId);
+        if (!p) return;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'ps-name-input';
+        input.value = p.name;
+        nameEl.replaceWith(input);
+        input.focus();
+        input.select();
+
+        let done = false;
+        const commit = (save) => {
+            if (done) return;
+            done = true;
+            if (save) {
+                const v = input.value.trim();
+                if (v) {
+                    const list = getPages();
+                    const t = list.find(x => x.id === pageId);
+                    if (t) { t.name = v; setPages(list); }
+                }
+            }
+            renderSwitcher();
+        };
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter')      { e.preventDefault(); commit(true);  }
+            else if (e.key === 'Escape'){ e.preventDefault(); commit(false); }
+        });
+        input.addEventListener('blur', () => commit(true));
+    }
+
+    // ===== ページ並び替え（追加ページのみ。baseは下端固定）=====
+    function persistPageOrder() {
+        const list = switcher.querySelector('.ps-list');
+        if (!list) return;
+        // DOM は上→下 = 新→旧。配列は逆順（base先頭）に戻す
+        const domIds = Array.from(list.children).map(r => r.dataset.pageId);
+        const orderIds = domIds.slice().reverse();
+        const pages = getPages();
+        const byId = {};
+        pages.forEach(p => { byId[p.id] = p; });
+        const next = orderIds.map(id => byId[id]).filter(Boolean);
+        // base が先頭である保証（念のため）
+        if (next.length && pages.length && next[0].id !== pages[0].id) {
+            const baseIdx = next.findIndex(p => p.id === pages[0].id);
+            if (baseIdx > 0) {
+                const [base] = next.splice(baseIdx, 1);
+                next.unshift(base);
+            }
+        }
+        setPages(next);
+    }
+
+    function initPanelDragSort(container) {
+        let dragging = null;
+        const getList = () => container.querySelector('.ps-list');
+
+        // PC: mouse drag
+        container.addEventListener('dragstart', e => {
+            const row = e.target.closest('.ps-row');
+            if (!row || row.dataset.pageDraggable !== '1') return;
+            dragging = row;
+            e.dataTransfer.effectAllowed = 'move';
+            setTimeout(() => row.classList.add('ps-dragging'), 0);
+        });
+        container.addEventListener('dragend', () => {
+            if (!dragging) return;
+            dragging.classList.remove('ps-dragging');
+            dragging = null;
+            persistPageOrder();
+            renderSwitcher();
+        });
+        container.addEventListener('dragover', e => {
+            if (!dragging) return;
+            const list = getList();
+            const target = e.target.closest('.ps-row');
+            if (!target || target === dragging || target.dataset.pageDraggable !== '1') return;
+            e.preventDefault();
+            const rect = target.getBoundingClientRect();
+            if (e.clientY < rect.top + rect.height / 2) {
+                list.insertBefore(dragging, target);
+            } else {
+                list.insertBefore(dragging, target.nextSibling);
+            }
+        });
+
+        // スマホ: touch drag（ハンドルから）
+        container.addEventListener('touchstart', e => {
+            if (!e.target.closest('.ps-handle')) return;
+            const row = e.target.closest('.ps-row');
+            if (!row || row.dataset.pageDraggable !== '1') return;
+            dragging = row;
+            e.preventDefault();
+            row.classList.add('ps-dragging');
+        }, { passive: false });
+        container.addEventListener('touchmove', e => {
+            if (!dragging) return;
+            e.preventDefault();
+            const list = getList();
+            const t = e.touches[0];
+            dragging.style.visibility = 'hidden';
+            const el = document.elementFromPoint(t.clientX, t.clientY);
+            dragging.style.visibility = '';
+            if (!el) return;
+            const target = el.closest('.ps-row');
+            if (!target || target === dragging || target.dataset.pageDraggable !== '1' || !list.contains(target)) return;
+            const rect = target.getBoundingClientRect();
+            if (t.clientY < rect.top + rect.height / 2) {
+                list.insertBefore(dragging, target);
+            } else {
+                list.insertBefore(dragging, target.nextSibling);
+            }
+        }, { passive: false });
+        container.addEventListener('touchend', () => {
+            if (!dragging) return;
+            dragging.classList.remove('ps-dragging');
+            dragging = null;
+            persistPageOrder();
+            renderSwitcher();
+        });
+        container.addEventListener('touchcancel', () => {
+            if (!dragging) return;
+            dragging.classList.remove('ps-dragging');
+            dragging = null;
+        });
     }
 
     // 新しい行の HTML を生成して返す
@@ -306,74 +779,33 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     }
 
-    // --- 起動時: 追加行を先に復元してから状態を復元 ---
-    const dynamicRows = document.getElementById('dynamic-rows');
-    const BASE_ROW_COUNT = dynamicRows.querySelectorAll('.row').length; // HTML上の初期行数 = 12
-    // 保存された総行数を復元。未保存なら初期行数をそのまま使う
-    let savedRowCount = parseInt(localStorage.getItem(LS_ROWS));
-    if (isNaN(savedRowCount)) savedRowCount = BASE_ROW_COUNT;
-
-    // 初期行数より多ければ追加、少なければ削除
-    if (savedRowCount > BASE_ROW_COUNT) {
-        for (let i = 0; i < savedRowCount - BASE_ROW_COUNT; i++) {
-            dynamicRows.appendChild(createRow());
-        }
-    } else if (savedRowCount < BASE_ROW_COUNT) {
-        const rows = dynamicRows.querySelectorAll('.row');
-        for (let i = rows.length - 1; i >= savedRowCount; i--) {
-            rows[i].remove();
-        }
-    }
-
-    // 状態復元
-    const cbStates   = parseJSON(localStorage.getItem(LS_CB));
-    const memoStates = parseJSON(localStorage.getItem(LS_MEMO));
-
-    const allCbs   = Array.from(form.querySelectorAll('input[type="checkbox"]'));
-    const allMemos = Array.from(form.querySelectorAll('.memo'));
-
-    allCbs.forEach((cb, i)   => { if (typeof cbStates[i]   !== 'undefined') cb.checked = !!cbStates[i]; });
-    allMemos.forEach((m, i)  => { if (typeof memoStates[i] !== 'undefined') m.value    = memoStates[i]; });
-
-    // 既存行にドラッグハンドルを追加してdraggable化（既にある行はスキップ）
-    Array.from(dynamicRows.querySelectorAll('.row')).forEach(row => {
-        row.draggable = true;
-        if (!row.querySelector('.drag-handle')) {
-            const handle = document.createElement('span');
-            handle.className = 'drag-handle';
-            handle.textContent = '⠿';
-            row.insertBefore(handle, row.firstChild);
-        }
-    });
-
-    // イベント登録
-    Array.from(dynamicRows.querySelectorAll('.row')).forEach(bindRow);
-    initDragSort(dynamicRows);
+    // --- 起動 ---
+    // フォーム下部のメモ（textarea 等、#dynamic-rows 外）の入力を保存（一度だけ登録）
     form.querySelectorAll('.memo').forEach(m => {
         if (!m.closest('#dynamic-rows')) m.addEventListener('input', saveAll);
     });
-    form.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        if (!cb.closest('#dynamic-rows')) cb.addEventListener('change', saveAll);
-    });
 
-    // --- ＋ボタン ---
+    initDragSort(dynamicRows);   // 行ドラッグ：コンテナへ一度だけ委譲登録
+    initPanelDragSort(switcher); // ページ並び替え：パネルへ一度だけ委譲登録
+    initPages();                 // ページ初期化・旧データ移行
+    loadPage(getActive());       // アクティブページを描画
+    renderSwitcher();            // フロートUI描画
+
+    // --- ＋ボタン（行を追加）---
     document.getElementById('btn-add-row').addEventListener('click', function(e) {
         e.preventDefault();
         const row = createRow();
         dynamicRows.appendChild(row);
         bindRow(row);
-        savedRowCount++;
-        localStorage.setItem(LS_ROWS, savedRowCount);
+        saveAll();
     });
 
-    // --- －ボタン ---
+    // --- －ボタン（行を削除）---
     document.getElementById('btn-remove-row').addEventListener('click', function(e) {
         e.preventDefault();
         const rows = dynamicRows.querySelectorAll('.row');
         if (rows.length <= 1) return; // 最低1行は残す
         rows[rows.length - 1].remove();
-        savedRowCount--;
-        localStorage.setItem(LS_ROWS, savedRowCount);
         saveAll();
     });
 
