@@ -85,7 +85,7 @@
             box-sizing: border-box;
             /* 上部メモを4行分表示するため最小高さを確保 */
             padding: 10px;
-            min-height: calc(1.2em * 4 + 14px);
+            min-height: calc(1.2em * 5 + 14px);
             font-size: 1rem;
             border-radius: 4px;
             border: 1px solid rgba(0,174,174,0.5);
@@ -107,7 +107,7 @@
         }
         /* ページ下部用の10行メモ（cookieで保存される） */
         textarea.cocky {
-            min-height: calc(1.2em * 10 + 14px);
+            min-height: calc(1.2em * 8 + 14px);
             margin-top: 18px;
         }
         hr {
@@ -121,6 +121,32 @@
             padding: 4px;
             border-radius: 3px;
         }
+        .row-del-btn {
+            flex-shrink: 0;
+            align-self: stretch;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 400;
+            padding: 0 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #4d4d4d;
+            background: #ddd;
+            transition: background .2s, color .2s;
+        }
+        .row-del-btn:hover { color: #000; background: rgba(0,87,87,0.15); }
+        #btn-add-row, #btn-remove-row {
+            font-size: 1em;
+            padding: 6px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background .2s;
+        }
+        #btn-add-row:hover, #btn-remove-row:hover { background: rgba(0,174,174,0.15); }
 
         /* スマホ対応 */
         @media (max-width: 640px) {
@@ -166,7 +192,7 @@
                 font-size: 16px;
             }
             #btn-add-row, #btn-remove-row {
-                font-size: 1.4em;
+                font-size: 1em;
                 padding: 6px 16px;
             }
         }
@@ -226,10 +252,10 @@
             --item-bg: rgba(0, 31, 31, 0.5);
             --accent: rgba(0, 174, 174, 0.3);   /* アクティブ/ホバーのフィル */
             --accent-strong: rgba(0, 196, 196, 0.2); /* グロー */
-            --text: darkcyan;
+            --text: #00a7a7;
             --text-active: #ffffff;
-            --handle: rgba(0, 174, 174, 0.6);
-            --handle-dim: rgba(0, 174, 174, 0.22);
+            --handle: rgba(0, 209, 209, 0.6);
+            --handle-dim: rgba(0, 209, 209, 0.22);
 
             position: fixed;
             right: 16px;
@@ -256,14 +282,14 @@
         #page-switcher .ps-list {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
         }
 
         /* 各ページ行 [⠿] [name] [C][-]（枠なし・省スペース）*/
         #page-switcher .ps-row {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 2px;
             transition: opacity .15s;
         }
         #page-switcher .ps-row.ps-dragging { opacity: .4; }
@@ -332,7 +358,7 @@
         /* アクション群 [C][-]（枠線なし）*/
         #page-switcher .ps-actions {
             display: flex;
-            gap: 4px;
+            gap: 2px;
             flex-shrink: 0;
         }
         #page-switcher .ps-btn {
@@ -464,20 +490,20 @@
 <form action="">
 <!-- トップに追加: チェックボックス3つ + 1行メモ を10行（自動保存対応） -->
     <div id="dynamic-rows" class="rows" style="margin-bottom:12px;">
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
-        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 作業終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
+        <div class="row"><div class="left">予定<input type="checkbox" name="" id=""> 作業<input type="checkbox" name="" id=""> 終了<input type="checkbox" name="" id=""> 確認<input type="checkbox" name="" id=""></div><div class="right"><input type="text" class="memo" placeholder="メモ"></div></div>
     </div>
     <div style="margin-bottom:12px;">
         <button id="btn-add-row">＋</button>
         <button id="btn-remove-row">－</button>
     </div>
 
-    <textarea class="memo" placeholder="メモ" rows="4"></textarea>
-<textarea class="memo cocky" placeholder="ここにメモ（自動保存）" rows="10"></textarea>
+    <textarea class="memo" placeholder="メモ１" rows="5"></textarea>
+<textarea class="memo cocky" placeholder="メモ２" rows="8"></textarea>
 
 <!-- ページ下部: クリア / 日付 / ページタイトル -->
 <div id="page-title-bar">
@@ -886,9 +912,10 @@ document.addEventListener('DOMContentLoaded', function(){
     function createRow() {
         const row = document.createElement('div');
         row.className = 'row';
-        row.draggable = true;
-        row.innerHTML = '<span class="drag-handle">⠿</span>'
-                      + '<div class="left">予定<input type="checkbox"> 作業<input type="checkbox"> 作業終了<input type="checkbox"> 確認<input type="checkbox"></div>'
+        row.draggable = false;
+        row.innerHTML = '<button type="button" class="row-del-btn">D</button>'
+                      + '<span class="drag-handle">⠿</span>'
+                      + '<div class="left">予定<input type="checkbox"> 作業<input type="checkbox"> 終了<input type="checkbox"> 確認<input type="checkbox"></div>'
                       + '<div class="right"><input type="text" class="memo" placeholder="メモ"></div>';
         return row;
     }
@@ -897,13 +924,28 @@ document.addEventListener('DOMContentLoaded', function(){
     function bindRow(row) {
         row.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.addEventListener('change', saveAll));
         row.querySelectorAll('.memo').forEach(m => m.addEventListener('input', saveAll));
+        const delBtn = row.querySelector('.row-del-btn');
+        if (delBtn) delBtn.addEventListener('click', () => {
+            const rows = dynamicRows.querySelectorAll('.row');
+            if (rows.length <= 1) return;
+            const hasText = Array.from(row.querySelectorAll('.memo')).some(m => m.value.trim() !== '');
+            if (hasText && !confirm('この行にメモがあります。削除しますか？')) return;
+            row.remove();
+            saveAll();
+        });
     }
 
     // --- ドラッグ並び替え（PC: mouse / スマホ: touch 両対応）---
     function initDragSort(container) {
         let dragging = null;
 
-        // PC: mouse drag
+        // PC: mouse drag（ハンドル mousedown 時だけ draggable をオン）
+        container.addEventListener('mousedown', e => {
+            const handle = e.target.closest('.drag-handle');
+            if (!handle) return;
+            const row = handle.closest('.row');
+            if (row) row.draggable = true;
+        });
         container.addEventListener('dragstart', e => {
             dragging = e.target.closest('.row');
             if (!dragging) return;
@@ -911,7 +953,7 @@ document.addEventListener('DOMContentLoaded', function(){
             setTimeout(() => dragging.classList.add('dragging'), 0);
         });
         container.addEventListener('dragend', () => {
-            if (dragging) dragging.classList.remove('dragging');
+            if (dragging) { dragging.classList.remove('dragging'); dragging.draggable = false; }
             dragging = null;
             saveAll();
         });
@@ -1091,8 +1133,11 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('btn-remove-row').addEventListener('click', function(e) {
         e.preventDefault();
         const rows = dynamicRows.querySelectorAll('.row');
-        if (rows.length <= 1) return; // 最低1行は残す
-        rows[rows.length - 1].remove();
+        if (rows.length <= 1) return;
+        const last = rows[rows.length - 1];
+        const hasText = Array.from(last.querySelectorAll('.memo')).some(m => m.value.trim() !== '');
+        if (hasText && !confirm('この行にメモがあります。削除しますか？')) return;
+        last.remove();
         saveAll();
     });
 
