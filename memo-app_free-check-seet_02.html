@@ -11,16 +11,24 @@
             font-size: 18px;
             line-height: 1;
         }
+        /* =========================================================
+           メモ側（メイン画面）: チェック行・1行メモ・下部メモ
+           ========================================================= */
+
         /* dynamic-rows は flex 縦積み（ドラッグ並び替え対応） */
         #dynamic-rows {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
+        /* 1行分（ドラッグハンドル + チェック群 + メモ入力 + 削除D）*/
         #dynamic-rows .row {
             display: flex;
             align-items: center;
             gap: 12px;
+            border: #ccc 2px solid;
+            padding: 4px;
+            border-radius: 3px;
         }
         #dynamic-rows .row .left {
             white-space: nowrap;
@@ -48,14 +56,9 @@
             user-select: none;
         }
         .drag-handle:active { cursor: grabbing; }
-        #dynamic-rows .row.dragging { opacity: 0.4; }
-        .section-title {
-            grid-column: 1 / -1;
-            text-align: left;
-            margin-top: 12px;
-            margin-bottom: 6px;
-            font-size: 1.2em;
-        }
+        #dynamic-rows .row.dragging { opacity: 0.4; }  /* ドラッグ中の行を半透明に */
+
+        /* 1行メモ（テキスト入力）*/
         input.memo {
             width: 100%;
             box-sizing: border-box;
@@ -66,15 +69,13 @@
             border-radius: 4px;
             border: 1px solid rgba(0,174,174,0.5);
         }
-        /* フォーカス時の色の濃さを半分にする（ハイライトを弱める） */
-        input.memo:focus,
-        .rows .right input[type="text"]:focus {
+        /* フォーカス時：枠線を濃く＋淡いグロー */
+        input.memo:focus {
             outline: none;
-            border-color: rgba(0,160,160,1); /* より濃く */
-            box-shadow: 0 0 0 3px rgba(0,196,196,0.28); /* ハイライトをやや強めに */
+            border-color: rgba(0,160,160,1);
+            box-shadow: 0 0 0 3px rgba(0,196,196,0.28);
         }
-        /* テキスト入力（1行メモ）はブロック表示かつ幅いっぱいに広げる */
-        .row .right input.memo,
+        /* 1行メモはブロック表示で幅いっぱいに */
         .rows .right input.memo {
             display: block;
             width: 100%;
@@ -105,22 +106,13 @@
             border-color: rgba(0,160,160,1);
             box-shadow: 0 0 0 3px rgba(0,196,196,0.28);
         }
-        /* ページ下部用の10行メモ（cookieで保存される） */
+        /* ページ下部用の長文メモ（localStorageで保存される） */
         textarea.cocky {
             min-height: calc(1.2em * 8 + 14px);
             margin-top: 18px;
         }
-        hr {
-            grid-column: 1 / -1;
-            border: none;
-            border-top: 1px solid #ccc;
-            margin: 12px 0;
-        }
-        #dynamic-rows .row {
-            border: #ccc 2px solid;
-            padding: 4px;
-            border-radius: 3px;
-        }
+
+        /* 行頭の削除ボタン [D]（クリックでその行を削除）*/
         .row-del-btn {
             flex-shrink: 0;
             align-self: stretch;
@@ -138,6 +130,8 @@
             transition: background .2s, color .2s;
         }
         .row-del-btn:hover { color: #000; background: rgba(0,87,87,0.15); }
+
+        /* 行を増減する ＋ / － ボタン */
         #btn-add-row, #btn-remove-row {
             font-size: 0.7em;
             font-weight: 400;
@@ -192,10 +186,6 @@
             }
             textarea.memo {
                 font-size: 16px;
-            }
-            #btn-add-row, #btn-remove-row {
-                font-size: 0.7em;
-                padding: 4px 8px;
             }
         }
 
@@ -257,7 +247,6 @@
             --text: #00a7a7;
             --text-active: #ffffff;
             --handle: rgba(0, 209, 209, 0.6);
-            --handle-dim: rgba(0, 209, 209, 0.22);
 
             position: fixed;
             right: 16px;
@@ -309,11 +298,6 @@
             touch-action: none;
         }
         #page-switcher .ps-handle:active { cursor: grabbing; }
-        /* base 行のハンドル位置を空ける（ドラッグUIは出さない）*/
-        #page-switcher .ps-handle-spacer {
-            flex-shrink: 0;
-            width: 16px;
-        }
 
         /* ページ名 [name]（クリックで切替・枠なし。ダブルクリックで改名）*/
         #page-switcher .ps-name {
