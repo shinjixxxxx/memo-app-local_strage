@@ -15,6 +15,7 @@ const MIME = {
   '.jpg':  'image/jpeg',
   '.svg':  'image/svg+xml',
   '.ico':  'image/x-icon',
+  '.md':   'text/markdown; charset=utf-8',
 };
 
 // POST ボディを読む
