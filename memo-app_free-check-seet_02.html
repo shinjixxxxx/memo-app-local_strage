@@ -560,6 +560,22 @@
             <span class="ps-field-label">ページタイトル</span>
             <input type="text" id="ps-page-title" class="ps-field-input" placeholder="ページタイトル">
         </label>
+        <label class="ps-field">
+            <span class="ps-field-label">この端末の名前</span>
+            <input type="text" id="ps-device-name" class="ps-field-input" placeholder="例: メインMac">
+        </label>
+        <label class="ps-field">
+            <span class="ps-field-label">自動同期の間隔（分）</span>
+            <input type="number" id="ps-sync-interval" class="ps-field-input" min="1" step="1" placeholder="30">
+        </label>
+        <div class="ps-field">
+            <span class="ps-field-label">同期</span>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <button type="button" id="ps-sync-now" class="ps-dialog-btn primary">同期する</button>
+                <button type="button" id="ps-pick-file" class="ps-dialog-btn" style="display:none;">同期ファイルを指定</button>
+            </div>
+            <div id="ps-sync-status" style="margin-top:8px; font-size:11px; color:darkcyan;">—</div>
+        </div>
         <div class="ps-dialog-actions">
             <button type="button" id="ps-settings-close" class="ps-dialog-btn">閉じる</button>
             <button type="button" id="ps-settings-save" class="ps-dialog-btn primary">保存</button>
@@ -567,6 +583,148 @@
     </div>
 </div>
 
+
+<!-- ===== 同期用の純粋関数（DOM/localStorage非依存・Nodeで単体テスト可能）===== -->
+<script>
+window.MemoSync = (function () {
+    'use strict';
+
+    // 文字列を行に分割し、空行を除いて重複なしの和集合を作る（a の順を優先）
+    function unionLines(a, b) {
+        const out = [], seen = new Set();
+        const push = s => {
+            (s == null ? '' : String(s)).split('\n').forEach(line => {
+                const t = line.replace(/\s+$/, '');   // 末尾空白のみ除去
+                const key = t.trim();
+                if (key === '' || seen.has(key)) return;
+                seen.add(key); out.push(t);
+            });
+        };
+        push(a); push(b);
+        return out.join('\n');
+    }
+
+    // 配列を4個ずつ（チェックボックス1行=4個）に分割
+    function chunk4(arr) {
+        const out = [];
+        for (let i = 0; i < arr.length; i += 4) {
+            out.push([arr[i], arr[i + 1], arr[i + 2], arr[i + 3]].map(Boolean));
+        }
+        return out;
+    }
+
+    // ページの raw(memos/checks/rows) を「行データ」と「末尾textarea(メモ1/メモ2)」に分解
+    function splitPage(page) {
+        const rows   = Math.max(0, parseInt(page.rows, 10) || 0);
+        const memos  = Array.isArray(page.memos)  ? page.memos  : [];
+        const checks = Array.isArray(page.checks) ? page.checks : [];
+        const rowMemos  = memos.slice(0, rows);
+        const extras    = memos.slice(rows);                 // [メモ1, メモ2]
+        const rowChecks = chunk4(checks.slice(0, rows * 4));
+        const rowsArr = [];
+        for (let i = 0; i < rows; i++) {
+            rowsArr.push({
+                memo: rowMemos[i] != null ? rowMemos[i] : '',
+                checks: rowChecks[i] || [false, false, false, false]
+            });
+        }
+        return { rowsArr, extras };
+    }
+
+    function orChecks(a, b) {
+        const out = [];
+        for (let i = 0; i < 4; i++) out.push(Boolean((a && a[i]) || (b && b[i])));
+        return out;
+    }
+
+    // yyyy-mm-dd は辞書順=日付順。新しい方（無ければ有る方）を採用
+    function pickDate(a, b) {
+        a = a || ''; b = b || '';
+        if (!a) return b; if (!b) return a;
+        return a >= b ? a : b;
+    }
+
+    function normalizePage(p) {
+        return {
+            id: p.id, name: p.name || '', origin: p.origin || '',
+            rows: parseInt(p.rows, 10) || (Array.isArray(p.memos) ? p.memos.length : 0),
+            date: p.date || '',
+            memos:  Array.isArray(p.memos)  ? p.memos.slice()  : [],
+            checks: Array.isArray(p.checks) ? p.checks.slice() : []
+        };
+    }
+
+    // 同一IDの2ページをマージ：行=メモ文字列の和集合（全部残す・重複排除・チェックは論理和）、
+    // textarea(メモ1/メモ2)=行の和集合、date=新しい方
+    function mergePage(localP, remoteP) {
+        const L = splitPage(localP), R = splitPage(remoteP);
+        const map = new Map(), order = [];
+        const add = row => {
+            const key = (row.memo || '').trim();
+            if (key === '') return;                  // 空メモ行は蓄積しない
+            if (map.has(key)) {
+                const ex = map.get(key);
+                ex.checks = orChecks(ex.checks, row.checks);
+            } else {
+                map.set(key, { memo: row.memo, checks: row.checks.slice() });
+                order.push(key);
+            }
+        };
+        L.rowsArr.forEach(add);
+        R.rowsArr.forEach(add);
+        const merged = order.map(k => map.get(k));
+
+        // 行数 = 非空マージ結果と元の行数の最大。足りない分は空行で埋める（行が増える方向）
+        const baseRows = Math.max(merged.length, parseInt(localP.rows, 10) || 0, parseInt(remoteP.rows, 10) || 0);
+        const rowMemos = [], rowChecks = [];
+        for (let i = 0; i < baseRows; i++) {
+            if (i < merged.length) { rowMemos.push(merged[i].memo); rowChecks.push(merged[i].checks); }
+            else { rowMemos.push(''); rowChecks.push([false, false, false, false]); }
+        }
+
+        // 末尾 textarea（メモ1/メモ2）を行和集合でマージ
+        const extraCount = Math.max(L.extras.length, R.extras.length);
+        const extras = [];
+        for (let i = 0; i < extraCount; i++) extras.push(unionLines(L.extras[i] || '', R.extras[i] || ''));
+
+        const memos = rowMemos.concat(extras);
+        const checks = [];
+        rowChecks.forEach(c => checks.push(c[0], c[1], c[2], c[3]));
+
+        return {
+            id: localP.id,
+            name: localP.name || remoteP.name || '',
+            origin: localP.origin || remoteP.origin || '',
+            rows: baseRows,
+            date: pickDate(localP.date, remoteP.date),
+            memos: memos,
+            checks: checks
+        };
+    }
+
+    // ドキュメント全体のマージ：ページはID基準で全部残す（両方にあればmergePage）
+    function mergeDocs(localDoc, remoteDoc) {
+        const lPages = (localDoc && localDoc.pages) || [];
+        const rPages = (remoteDoc && remoteDoc.pages) || [];
+        const rById = new Map(rPages.map(p => [p.id, p]));
+        const lIds  = new Set(lPages.map(p => p.id));
+        const out = [];
+        lPages.forEach(lp => {
+            const rp = rById.get(lp.id);
+            out.push(rp ? mergePage(lp, rp) : normalizePage(lp));
+        });
+        rPages.forEach(rp => { if (!lIds.has(rp.id)) out.push(normalizePage(rp)); });
+        return {
+            schema: 1,
+            device: (localDoc && localDoc.device) || (remoteDoc && remoteDoc.device) || null,
+            title:  (localDoc && localDoc.title)  || (remoteDoc && remoteDoc.title)  || '',
+            pages: out
+        };
+    }
+
+    return { unionLines, chunk4, splitPage, orChecks, pickDate, normalizePage, mergePage, mergeDocs };
+})();
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
@@ -607,6 +765,246 @@ document.addEventListener('DOMContentLoaded', function(){
     function getActive() { return localStorage.getItem(K_ACTIVE); }
     function setActive(id){ localStorage.setItem(K_ACTIVE, id); }
 
+    // ===== 端末ID・端末名（ID衝突防止＋ページ由来追跡）=====
+    const K_DEVICE = 'fs02_device';   // {id, name}
+    function guessDeviceName() {
+        const ua = navigator.userAgent || '';
+        // iPadOS Safari は Macintosh を名乗るのでタッチ有無で判定
+        if (/iPad/.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1)) return 'iPad';
+        if (/iPhone/.test(ua)) return 'iPhone';
+        if (/Macintosh|Mac OS X/.test(ua)) return 'Mac';
+        if (/Android/.test(ua)) return 'Android';
+        if (/Windows/.test(ua)) return 'Windows';
+        return 'その他';
+    }
+    function genUuid() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return 'x-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    }
+    function getDevice() {
+        let d = parseJSON(localStorage.getItem(K_DEVICE), null);
+        if (!d || !d.id) {
+            d = { id: genUuid(), name: guessDeviceName() };
+            localStorage.setItem(K_DEVICE, JSON.stringify(d));
+        }
+        return d;
+    }
+    function setDeviceName(name) {
+        const d = getDevice();
+        d.name = (name && name.trim()) || d.name;
+        localStorage.setItem(K_DEVICE, JSON.stringify(d));
+    }
+
+    // ===== シリアライズ（localStorage 全体 ⇄ 正規化JSONドキュメント）=====
+    function exportData() {
+        const pages = getPages() || [];
+        return {
+            schema: 1,
+            device: getDevice(),
+            title: localStorage.getItem('fs02_title') || document.title || '',
+            pages: pages.map(p => ({
+                id: p.id,
+                name: p.name || '',
+                origin: p.origin || '',
+                rows: parseInt(localStorage.getItem(pk(p.id, 'rows')), 10) || DEFAULT_ROW_COUNT,
+                date: localStorage.getItem(pk(p.id, 'date')) || '',
+                memos:  parseJSON(localStorage.getItem(pk(p.id, 'memo')), []),
+                checks: parseJSON(localStorage.getItem(pk(p.id, 'cb')),   [])
+            }))
+        };
+    }
+
+    // doc を localStorage に書き込み、画面を再描画（置換）。マージ済みdocを渡す前提
+    function applyDoc(doc) {
+        if (!doc || !Array.isArray(doc.pages) || !doc.pages.length) return;
+        savePage(getActive());   // 取りこぼし防止
+        doc.pages.forEach(p => {
+            localStorage.setItem(pk(p.id, 'rows'), parseInt(p.rows, 10) || DEFAULT_ROW_COUNT);
+            localStorage.setItem(pk(p.id, 'memo'), JSON.stringify(Array.isArray(p.memos)  ? p.memos  : []));
+            localStorage.setItem(pk(p.id, 'cb'),   JSON.stringify(Array.isArray(p.checks) ? p.checks : []));
+            if (p.date) localStorage.setItem(pk(p.id, 'date'), p.date);
+        });
+        if (doc.title) { localStorage.setItem('fs02_title', doc.title); applyTitle(doc.title); }
+        const pages = doc.pages.map(p => ({ id: p.id, name: p.name || '', origin: p.origin || '' }));
+        setPages(pages);
+        if (!pages.some(x => x.id === getActive())) setActive(pages[0].id);
+        loadPage(getActive());
+        renderSwitcher();
+    }
+
+    // 取り込み = 現在のローカルと常にマージ（和集合・全部残す）。マージ結果を返す
+    function importDocMerge(remoteDoc) {
+        savePage(getActive());
+        const merged = MemoSync.mergeDocs(exportData(), remoteDoc);
+        applyDoc(merged);
+        return merged;
+    }
+
+    // ===== 同期I/O（端末別の読み書き）=====
+    // Mac(Chrome/Edge): File System Access API で同一ファイルに上書き
+    // iPad/iPhone(Safari): input で読込 → ダウンロードで書き出し
+    const canFSA = (typeof window.showOpenFilePicker === 'function' &&
+                    typeof window.showSaveFilePicker === 'function');
+    const SYNC_FILENAME = 'memo-sync.json';
+    let fsHandle = null;   // 指定したファイルハンドル（IndexedDBで永続化）
+
+    // --- IndexedDB（FileSystemFileHandle をリロードをまたいで保持）---
+    function idbOpen() {
+        return new Promise((res, rej) => {
+            const r = indexedDB.open('memo-sync', 1);
+            r.onupgradeneeded = () => r.result.createObjectStore('kv');
+            r.onsuccess = () => res(r.result);
+            r.onerror = () => rej(r.error);
+        });
+    }
+    async function idbSet(k, v) {
+        const db = await idbOpen();
+        return new Promise((res, rej) => {
+            const tx = db.transaction('kv', 'readwrite');
+            tx.objectStore('kv').put(v, k);
+            tx.oncomplete = () => res();
+            tx.onerror = () => rej(tx.error);
+        });
+    }
+    async function idbGet(k) {
+        const db = await idbOpen();
+        return new Promise((res, rej) => {
+            const tx = db.transaction('kv', 'readonly');
+            const rq = tx.objectStore('kv').get(k);
+            rq.onsuccess = () => res(rq.result);
+            rq.onerror = () => rej(rq.error);
+        });
+    }
+
+    async function restoreHandle() {
+        if (!canFSA) return null;
+        try { const h = await idbGet('fileHandle'); if (h) fsHandle = h; } catch (e) {}
+        return fsHandle;
+    }
+    async function ensurePermission(handle, mode) {
+        mode = mode || 'readwrite';
+        if (!handle || !handle.queryPermission) return true;
+        const opts = { mode };
+        if ((await handle.queryPermission(opts)) === 'granted') return true;
+        if ((await handle.requestPermission(opts)) === 'granted') return true;
+        return false;
+    }
+    async function pickFile() {
+        // showSaveFilePicker は既存ファイル選択も可（選べば現内容を読んでからマージ→上書き）
+        fsHandle = await window.showSaveFilePicker({
+            suggestedName: SYNC_FILENAME,
+            types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+        });
+        await idbSet('fileHandle', fsHandle);
+        return fsHandle;
+    }
+    async function readHandle(handle) {
+        const file = await handle.getFile();
+        const text = await file.text();
+        return text ? JSON.parse(text) : null;
+    }
+    async function writeHandle(handle, doc) {
+        const w = await handle.createWritable();
+        await w.write(JSON.stringify(doc, null, 2));
+        await w.close();
+    }
+
+    // Mac 経路：読み込み→マージ→反映→上書き
+    async function syncViaFSA() {
+        if (!fsHandle) await pickFile();                 // 初回はファイルを指定
+        if (!(await ensurePermission(fsHandle))) throw new Error('ファイルへのアクセスが許可されませんでした');
+        let remote = null;
+        try { remote = await readHandle(fsHandle); } catch (e) { remote = null; }  // 空/新規は無視
+        if (remote) importDocMerge(remote); else savePage(getActive());
+        await writeHandle(fsHandle, exportData());
+        markSynced();
+    }
+
+    // iPad/iPhone 経路：input で読込 → ダウンロードで書き出し
+    function readViaInput() {
+        return new Promise(resolve => {
+            const inp = document.createElement('input');
+            inp.type = 'file';
+            inp.accept = '.json,application/json';
+            inp.addEventListener('change', async () => {
+                const f = inp.files && inp.files[0];
+                if (!f) { resolve(null); return; }
+                try { const t = await f.text(); resolve(t ? JSON.parse(t) : null); }
+                catch (e) { alert('ファイルを読み込めませんでした'); resolve(null); }
+            });
+            inp.click();
+        });
+    }
+    function downloadDoc(doc) {
+        const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = SYNC_FILENAME;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    async function syncViaDownload() {
+        const remote = await readViaInput();
+        if (remote) importDocMerge(remote); else savePage(getActive());
+        downloadDoc(exportData());
+        markSynced();
+    }
+
+    // 公開: 同期する（端末に応じて経路選択）
+    async function syncNow() {
+        return canFSA ? syncViaFSA() : syncViaDownload();
+    }
+
+    // ===== 未同期フラグ・同期状態・自動同期タイマー =====
+    const K_DIRTY    = 'fs02_dirty';
+    const K_LASTSYNC = 'fs02_lastsync';
+    const K_INTERVAL = 'fs02_sync_interval_min';
+    function isDirty()      { return localStorage.getItem(K_DIRTY) === '1'; }
+    function markDirty()    { localStorage.setItem(K_DIRTY, '1'); updateSyncStatus(); }
+    function markSynced()   { localStorage.setItem(K_DIRTY, ''); localStorage.setItem(K_LASTSYNC, new Date().toISOString()); updateSyncStatus(); }
+    function syncConfigured(){ return !!localStorage.getItem(K_LASTSYNC) || !!fsHandle; }
+    function getIntervalMin(){ const n = parseInt(localStorage.getItem(K_INTERVAL), 10); return (n && n > 0) ? n : 30; }
+    function relTime(iso) {
+        if (!iso) return null;
+        const t = Date.parse(iso); if (isNaN(t)) return null;
+        const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+        if (sec < 60) return sec + '秒前';
+        const min = Math.floor(sec / 60); if (min < 60) return min + '分前';
+        const hr  = Math.floor(min / 60); if (hr  < 24) return hr  + '時間前';
+        return Math.floor(hr / 24) + '日前';
+    }
+    function updateSyncStatus() {
+        const el = document.getElementById('ps-sync-status');
+        if (!el) return;
+        const rel = relTime(localStorage.getItem(K_LASTSYNC));
+        let s = rel ? ('最終同期: ' + rel) : '未同期';
+        if (isDirty()) s += '（未保存の変更あり）';
+        el.textContent = s;
+    }
+
+    let syncTimer = null;
+    function armSyncTimer() {
+        if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+        if (!canFSA) return;                         // 自動同期は直接上書きできるMacのみ
+        syncTimer = setInterval(async () => {
+            if (!navigator.onLine || !fsHandle) return;
+            try {
+                // 無操作で許可が得られる場合のみ自動同期（権限プロンプトは出さない）
+                if (!handlePermittedSilently) { return; }
+                await syncViaFSA();
+            } catch (e) { /* 自動同期の失敗は次回に委ねる */ }
+        }, getIntervalMin() * 60 * 1000);
+    }
+    // queryPermission==='granted' のときだけ true（自動同期で勝手にプロンプトを出さないため）
+    let handlePermittedSilently = false;
+    async function refreshSilentPermission() {
+        handlePermittedSilently = false;
+        if (canFSA && fsHandle && fsHandle.queryPermission) {
+            try { handlePermittedSilently = (await fsHandle.queryPermission({ mode: 'readwrite' })) === 'granted'; }
+            catch (e) {}
+        }
+    }
+
     // 初回起動 / 旧データ移行（旧 free_sheet_02_* を base ページへ）
     function initPages() {
         let pages = getPages();
@@ -627,7 +1025,8 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     function newId() {
-        return 'p' + Date.now().toString(36) + Math.floor(Math.random()*1e4).toString(36);
+        // 端末IDのプレフィックス + UUID で、別端末との衝突を原理的に防ぐ
+        return 'p_' + getDevice().id.slice(0, 8) + '_' + genUuid();
     }
     // 既存の "mem NN" の最大番号+1 で新名を生成
     function nextPageName(pages) {
@@ -650,7 +1049,7 @@ document.addEventListener('DOMContentLoaded', function(){
         localStorage.setItem(pk(id,'rows'), rows);
     }
     // 既存呼び出し（行追加/削除・ドラッグ・入力）との互換ラッパ
-    function saveAll() { savePage(getActive()); }
+    function saveAll() { savePage(getActive()); markDirty(); }
 
     function loadPage(id) {
         let rowCount = parseInt(localStorage.getItem(pk(id,'rows')), 10);
@@ -695,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', function(){
         const id = newId();
         const name = nextPageName(pages);
         if (copyFromId) {
-            ['cb','memo','rows'].forEach(suf => {
+            ['cb','memo','rows','date'].forEach(suf => {
                 const v = localStorage.getItem(pk(copyFromId, suf));
                 if (v !== null) localStorage.setItem(pk(id, suf), v);
             });
@@ -704,7 +1103,7 @@ document.addEventListener('DOMContentLoaded', function(){
             localStorage.removeItem(pk(id,'cb'));
             localStorage.removeItem(pk(id,'memo'));
         }
-        pages.push({ id, name });
+        pages.push({ id, name, origin: getDevice().id });
         setPages(pages);
         setActive(id);
         loadPage(id);
@@ -1083,9 +1482,18 @@ document.addEventListener('DOMContentLoaded', function(){
     const overlay = document.getElementById('ps-settings-overlay');
     const titleInput = document.getElementById('ps-page-title');
 
+    const deviceNameInput = document.getElementById('ps-device-name');
+    const intervalInput   = document.getElementById('ps-sync-interval');
+    const syncNowBtn      = document.getElementById('ps-sync-now');
+    const pickFileBtn     = document.getElementById('ps-pick-file');
+
     function applyTitle(t) { if (t) document.title = t; }
     function openSettings() {
         titleInput.value = localStorage.getItem(K_TITLE) || document.title || '';
+        deviceNameInput.value = getDevice().name || '';
+        intervalInput.value = getIntervalMin();
+        pickFileBtn.style.display = canFSA ? '' : 'none';  // Mac のみファイル指定を表示
+        updateSyncStatus();
         overlay.classList.add('open');
         overlay.setAttribute('aria-hidden', 'false');
         setTimeout(() => titleInput.focus(), 60);
@@ -1098,6 +1506,11 @@ document.addEventListener('DOMContentLoaded', function(){
         const v = titleInput.value.trim();
         localStorage.setItem(K_TITLE, v);
         applyTitle(v || 'MEMO SAVE IN LOCALSTORAGE');
+        setDeviceName(deviceNameInput.value);
+        const iv = parseInt(intervalInput.value, 10);
+        if (iv && iv > 0) localStorage.setItem(K_INTERVAL, iv);
+        armSyncTimer();
+        renderSwitcher();
         closeSettings();
     }
     document.getElementById('ps-settings-close').addEventListener('click', closeSettings);
@@ -1107,6 +1520,28 @@ document.addEventListener('DOMContentLoaded', function(){
         if (e.key === 'Enter')       { e.preventDefault(); saveSettings(); }
         else if (e.key === 'Escape') { closeSettings(); }
     });
+
+    // 同期する（読込→マージ→反映→書き出し）
+    syncNowBtn.addEventListener('click', async () => {
+        const orig = syncNowBtn.textContent;
+        const statusEl = document.getElementById('ps-sync-status');
+        syncNowBtn.disabled = true; syncNowBtn.textContent = '同期中…';
+        if (statusEl) statusEl.textContent = '同期中…';
+        try {
+            await syncNow();
+            await refreshSilentPermission();
+        } catch (e) {
+            if (statusEl) statusEl.textContent = '同期に失敗: ' + (e && e.message ? e.message : e);
+        } finally {
+            syncNowBtn.disabled = false; syncNowBtn.textContent = orig;
+        }
+    });
+    // 同期ファイルを指定（Mac のみ）
+    pickFileBtn.addEventListener('click', async () => {
+        try { await pickFile(); await refreshSilentPermission(); updateSyncStatus(); }
+        catch (e) { /* キャンセル等は無視 */ }
+    });
+
     applyTitle(localStorage.getItem(K_TITLE)); // 保存済みタイトルを適用
 
     // --- 起動 ---
@@ -1207,6 +1642,39 @@ document.addEventListener('DOMContentLoaded', function(){
         if (hasText && !confirm('この行にメモがあります。削除しますか？')) return;
         last.remove();
         saveAll();
+    });
+
+    // --- 同期の起動配線 ---
+    getDevice();                 // 端末レコードを確実に用意（初回はUUID＋種別推測）
+    (async () => {
+        await restoreHandle();           // 前回指定したファイルハンドルを復元（Mac）
+        await refreshSilentPermission(); // 無操作で書ける状態か把握（自動同期の判定用）
+        armSyncTimer();                  // 自動同期タイマー（Macのみ）
+        updateSyncStatus();
+        // 前回の変更が未同期のまま残っている場合のみ通知（同期を使っている人だけ）
+        if (isDirty() && syncConfigured()) {
+            setTimeout(() => {
+                if (confirm('前回の変更が未同期です。今すぐ同期しますか？')) {
+                    syncNow().then(refreshSilentPermission).catch(() => {});
+                }
+            }, 400);
+        }
+    })();
+
+    // 画面が隠れる時：Mac かつ無操作で書ける場合のみ自動上書き（タブ切替・閉じる前に有効）
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'hidden') return;
+        if (!isDirty() || !canFSA || !fsHandle || !handlePermittedSilently) return;
+        // ベストエフォート（完了保証はしない）。失敗時は beforeunload の警告で担保
+        try { writeHandle(fsHandle, exportData()).then(markSynced).catch(() => {}); } catch (e) {}
+    });
+
+    // 閉じる時：未同期の変更があれば警告（全端末で確実に動く担保）
+    window.addEventListener('beforeunload', (e) => {
+        if (!isDirty()) return;
+        e.preventDefault();
+        e.returnValue = '';   // 標準の「変更が保存されない可能性」警告を表示
+        return '';
     });
 
 });
