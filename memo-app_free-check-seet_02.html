@@ -47,9 +47,16 @@
             font-size: 0.9em;   /* 予定/作業/終了/確認 のラベルを微妙に小さく */
             color: #666;
         }
+        /* チェックボックスのチェック色を yaml のティール accent に合わせる */
+        input[type="checkbox"] {
+            accent-color: rgb(0, 174, 174);
+        }
         #dynamic-rows .row .right {
             flex: 1;
             min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         #dynamic-rows .row input[type="text"],
         #dynamic-rows .row input.memo {
@@ -88,11 +95,37 @@
             border-color: rgba(0,160,160,1);
             box-shadow: 0 0 0 3px rgba(0,196,196,0.28);
         }
-        /* 1行メモはブロック表示で幅いっぱいに */
+        /* 1行メモは残り幅いっぱいに（右の opn ボタンと横並び）*/
         .rows .right input.memo {
             display: block;
-            width: 100%;
+            flex: 1;
+            width: auto;
             min-width: 0;
+        }
+        /* メモ内URLを開く [opn] ボタン（URLがある行だけJSで表示）
+           ティールナビ風: 暗いティールのフィル＋ホバーでaccent＋グロー */
+        .memo-open {
+            flex-shrink: 0;
+            align-self: stretch;           /* 高さを隣の input.memo に揃える */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: 400;
+            line-height: 1;
+            padding: 0 12px;
+            border: none;
+            border-radius: 4px;
+            background: darkcyan;   /* yaml の基調ティール（#008b8b）に合わせる */
+            color: #ffffff;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .3s, box-shadow .3s;
+        }
+        .memo-open:hover {
+            background: rgba(0, 174, 174, 0.85);          /* yaml accent */
+            box-shadow: 0 0 10px rgba(0, 196, 196, 0.4);  /* yaml glow */
         }
         textarea.memo {
             width: 100%;
@@ -641,6 +674,8 @@ document.addEventListener('DOMContentLoaded', function(){
         const memoStates = parseJSON(localStorage.getItem(pk(id,'memo')), []);
         cbs.forEach((cb, i)  => { if (typeof cbStates[i]   !== 'undefined') cb.checked = !!cbStates[i]; });
         memos.forEach((m, i) => { if (typeof memoStates[i] !== 'undefined') m.value    = memoStates[i]; });
+        // 復元した値に応じて各行の opn ボタンを再表示
+        dynamicRows.querySelectorAll('.right .memo').forEach(m => syncOpenBtn(m));
         refreshTitleBar(id);
     }
 
@@ -920,10 +955,42 @@ document.addEventListener('DOMContentLoaded', function(){
         return row;
     }
 
+    // メモ文字列から最初の http/https/file URL を取り出す（なければ null）
+    function urlInText(t) {
+        const m = (t || '').match(/(?:https?|file):\/\/[^\s　]+/i);
+        return m ? m[0] : null;
+    }
+    // メモ欄の右の [opn] ボタンを現在の値に合わせて表示/更新/削除
+    function syncOpenBtn(input) {
+        const right = input.closest('.right');
+        if (!right) return;
+        let btn = right.querySelector('.memo-open');
+        const url = urlInText(input.value);
+        if (url) {
+            if (!btn) {
+                btn = document.createElement('a');
+                btn.className = 'memo-open';
+                btn.textContent = 'opn';
+                btn.target = '_blank';
+                btn.rel = 'noopener noreferrer';
+                btn.dataset.tip = 'リンクを開く';
+                right.appendChild(btn);
+            }
+            btn.href = url;
+        } else if (btn) {
+            btn.remove();
+        }
+    }
+
     // 行内の要素にイベントを登録
     function bindRow(row) {
         row.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.addEventListener('change', saveAll));
         row.querySelectorAll('.memo').forEach(m => m.addEventListener('input', saveAll));
+        // メモ欄の入力に応じて opn ボタンを同期
+        row.querySelectorAll('.right .memo').forEach(m => {
+            m.addEventListener('input', () => syncOpenBtn(m));
+            syncOpenBtn(m);
+        });
         const delBtn = row.querySelector('.row-del-btn');
         if (delBtn) delBtn.addEventListener('click', () => {
             const rows = dynamicRows.querySelectorAll('.row');
@@ -1071,6 +1138,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if (!confirm('このページのメモ内容をすべてクリアしますか？\nタイトルと日付は残ります。')) return;
         form.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
         form.querySelectorAll('.memo').forEach(m => m.value = '');
+        dynamicRows.querySelectorAll('.right .memo').forEach(m => syncOpenBtn(m));
         saveAll();
     });
 

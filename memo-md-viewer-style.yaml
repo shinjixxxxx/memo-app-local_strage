@@ -88,6 +88,20 @@ applied:
     color: "#ffffff"
     box_shadow: "0 0 10px rgba(0, 196, 196, 0.2)"
     note: "ボールドにはしない（font-weight 400 のまま）"
+  memo_open_button:              # メモ欄内URLを開く [opn] ボタン（メモ側だがティール基調を流用）
+    background: "darkcyan"        # #008b8b ソリッドのティール（白背景上で映えるよう不透明）
+    color: "#ffffff"
+    border: none
+    border_radius: "4px"
+    font_weight: 400
+    height: "隣接する input.memo に揃える（align-self: stretch）"
+    hover_background: "rgba(0, 174, 174, 0.85)"   # accent
+    hover_box_shadow: "0 0 10px rgba(0, 196, 196, 0.4)"  # glow
+    note: "実体は <a target=_blank>。URL検出時のみJSで表示"
+
+  # メモ側のチェックボックスもティール accent に合わせる
+  checkbox:
+    accent_color: "rgb(0, 174, 174)"   # CSS accent-color（yaml accent と同色）
 
 rules:
   - "枠線（border）は全要素で使用しない"
