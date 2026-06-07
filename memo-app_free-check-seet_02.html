@@ -6,6 +6,16 @@
     <style>
         body{
             padding: 30px;
+            background: #fafafa;
+            /* iOSで明朝にならないようゴシック系を明示 */
+            font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+        }
+        /* 入力欄・ボタンはフォントを継承しないため明示的に揃える
+           （※フロートUI #page-switcher 配下は独自フォントのため除外）*/
+        input:not(#page-switcher input),
+        textarea,
+        button:not(#page-switcher button) {
+            font-family: inherit;
         }
         form {
             font-size: 18px;
@@ -26,13 +36,16 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            border: #ccc 2px solid;
+            border: #ccc 1px solid;
             padding: 4px;
             border-radius: 3px;
+            background: #fff;
         }
         #dynamic-rows .row .left {
             white-space: nowrap;
             flex-shrink: 0;
+            font-size: 0.9em;   /* 予定/作業/終了/確認 のラベルを微妙に小さく */
+            color: #666;
         }
         #dynamic-rows .row .right {
             flex: 1;
@@ -147,7 +160,7 @@
         /* スマホ対応 */
         @media (max-width: 640px) {
             body {
-                padding: 10px;
+                padding: 3px;
             }
             form {
                 font-size: 16px;
@@ -159,26 +172,27 @@
             }
             .drag-handle {
                 font-size: 1.4em;
-                padding: 4px 10px;
-                min-width: 36px;
+                padding: 4px 5px;
+                min-width: 18px;
                 text-align: center;
                 touch-action: none;
             }
             #dynamic-rows .row .left {
-                width: 100%;
+                flex: 1;
+                min-width: 0;
                 display: flex;
                 align-items: center;
                 flex-wrap: wrap;
-                gap: 6px;
+                gap: 2px;
                 white-space: normal;
             }
             #dynamic-rows .row .right {
                 width: 100%;
             }
             input[type="checkbox"] {
-                width: 22px;
-                height: 22px;
-                margin: 0 2px;
+                width: 16px;
+                height: 16px;
+                margin: 0 1px;
             }
             input.memo {
                 font-size: 16px; /* iOSズーム防止 */
@@ -249,8 +263,8 @@
             --handle: rgba(0, 209, 209, 0.6);
 
             position: fixed;
-            right: 16px;
-            bottom: 16px;
+            right: 8px;
+            bottom: 8px;
             z-index: 9999;
             box-sizing: border-box;
 
