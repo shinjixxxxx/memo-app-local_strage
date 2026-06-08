@@ -598,7 +598,11 @@
             <span class="ps-field-label">同期</span>
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <button type="button" id="ps-sync-now" class="ps-dialog-btn primary">同期する</button>
+                <button type="button" id="ps-merge-read" class="ps-dialog-btn">マージ読込</button>
                 <button type="button" id="ps-pick-file" class="ps-dialog-btn" style="display:none;">別のファイルを選んで同期</button>
+            </div>
+            <div style="margin-top:6px; font-size:10px; color:rgba(255,255,255,0.55); line-height:1.5;">
+                マージ読込=ファイルを選んで読み込み、この端末とマージ（書き出しはしない・両方のメモを残す）
             </div>
             <div id="ps-sync-status" style="margin-top:8px; font-size:11px; color:darkcyan;">—</div>
         </div>
@@ -1080,6 +1084,25 @@ document.addEventListener('DOMContentLoaded', function(){
         oldIds.forEach(id => {
             if (!newIds.has(id)) ['cb', 'memo', 'rows', 'date'].forEach(s => localStorage.removeItem(pk(id, s)));
         });
+        markSynced();
+        return remote.pages.length;
+    }
+
+    // 強制マージ読込：ファイルを選んで読み込み、この端末とマージ（書き出しはしない）
+    // → 両方のメモを残す（和集合）。同期と違いファイルへ書き戻さない一方向の取り込み
+    async function forceMergeRead() {
+        let remote = null;
+        if (canFSA) {
+            await openExistingFile();   // 毎回ファイルを選ばせる
+            if (!(await ensurePermission(fsHandle))) throw new Error('ファイルへのアクセスが許可されませんでした');
+            remote = await readHandle(fsHandle);
+        } else {
+            remote = await readViaInput();
+        }
+        if (!remote || !Array.isArray(remote.pages) || !remote.pages.length) {
+            throw new Error('読み込めるデータがありませんでした');
+        }
+        importDocMerge(remote);   // 端末とマージ（和集合・全部残す）
         markSynced();
         return remote.pages.length;
     }
@@ -1613,6 +1636,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const intervalInput    = document.getElementById('ps-sync-interval');
     const autoSyncToggle   = document.getElementById('ps-auto-sync-enabled');
     const syncNowBtn       = document.getElementById('ps-sync-now');
+    const mergeReadBtn     = document.getElementById('ps-merge-read');
     const pickFileBtn      = document.getElementById('ps-pick-file');
     const forceWriteBtn    = document.getElementById('ps-force-write');
     const forceReadBtn     = document.getElementById('ps-force-read');
@@ -1712,6 +1736,23 @@ document.addEventListener('DOMContentLoaded', function(){
             if (statusEl) statusEl.textContent = '強制読込に失敗: ' + (e && e.message ? e.message : e);
         } finally {
             forceReadBtn.disabled = false; forceReadBtn.textContent = o;
+        }
+    });
+
+    // マージ読込（ファイルを選んで読み込み・この端末とマージ・書き出しなし）
+    mergeReadBtn.addEventListener('click', async () => {
+        if (!confirm('【マージ読込】ファイルを選んで読み込み、この端末とマージします。\n両方のメモが残ります（ファイルへの書き出しはしません）。\n\n実行しますか？')) return;
+        const statusEl = document.getElementById('ps-sync-status');
+        const o = mergeReadBtn.textContent;
+        mergeReadBtn.disabled = true; mergeReadBtn.textContent = '読込中…';
+        try {
+            const n = await forceMergeRead();
+            await refreshSilentPermission();
+            if (statusEl) statusEl.textContent = 'マージ読込しました（' + n + 'ページ取り込み）';
+        } catch (e) {
+            if (statusEl) statusEl.textContent = 'マージ読込に失敗: ' + (e && e.message ? e.message : e);
+        } finally {
+            mergeReadBtn.disabled = false; mergeReadBtn.textContent = o;
         }
     });
 
