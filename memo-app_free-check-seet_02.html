@@ -1013,13 +1013,13 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     }
     // ファイルとして書き出す。
-    // iPhone/iPad(Safari): Web Share API の共有シートから「ファイルに保存」を選ぶと
+    // iPhone/iPad(Safari): Web Share API の共有ダイアログから「ファイルに保存」を選ぶと
     //   iCloud Drive の任意フォルダに保存先を指定できる。
     // 非対応環境: 従来の <a download>（ブラウザ既定のダウンロードフォルダ）にフォールバック。
     async function downloadDoc(doc) {
         const name = stampedFilename();
         const json = JSON.stringify(doc, null, 2);
-        // 共有シート経由（保存先を選べる）
+        // 共有ダイアログ経由（保存先を選べる）
         try {
             const file = new File([json], name, { type: 'application/json' });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
