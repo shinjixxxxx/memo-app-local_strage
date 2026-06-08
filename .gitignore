@@ -2,4 +2,7 @@ node_modules/
 SCREENSHOTS/
 screenshot.png
 
+# 自己署名証明書（秘密鍵を含むためコミットしない）
+certs/
+
 .DS_Store

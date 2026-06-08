@@ -220,7 +220,7 @@
                 white-space: normal;
             }
             #dynamic-rows .row .right {
-                width: 100%;
+                flex: 0 0 100%;
             }
             input[type="checkbox"] {
                 width: 16px;
@@ -497,6 +497,24 @@
         #ps-settings-overlay .ps-dialog-btn.primary { background: rgba(0, 174, 174, 0.35); color: #fff; }
         #ps-settings-overlay .ps-dialog-btn.primary:hover { background: rgba(0, 174, 174, 0.5); }
 
+        /* ===== トグルスイッチ（自動同期ON/OFF）===== */
+        .ps-toggle { display:flex; align-items:center; gap:8px; }
+        .ps-toggle input[type="checkbox"] { display:none; }
+        .ps-toggle-track {
+            width:36px; height:20px; border-radius:10px;
+            background:rgba(255,255,255,0.15);
+            position:relative; cursor:pointer; flex-shrink:0;
+            transition:background .2s;
+        }
+        .ps-toggle input:checked + .ps-toggle-track { background:rgba(0,174,174,0.7); }
+        .ps-toggle-thumb {
+            position:absolute; top:2px; left:2px;
+            width:16px; height:16px; border-radius:50%;
+            background:#fff; transition:left .2s;
+        }
+        .ps-toggle input:checked + .ps-toggle-track .ps-toggle-thumb { left:18px; }
+        .ps-toggle-label { font-size:12px; color:rgba(255,255,255,0.8); }
+
         /* ===== カスタムツールチップ ===== */
         #tip {
             position: fixed;
@@ -564,6 +582,14 @@
             <span class="ps-field-label">この端末の名前</span>
             <input type="text" id="ps-device-name" class="ps-field-input" placeholder="例: メインMac">
         </label>
+        <div class="ps-field">
+            <span class="ps-field-label">自動同期</span>
+            <label class="ps-toggle">
+                <input type="checkbox" id="ps-auto-sync-enabled">
+                <span class="ps-toggle-track"><span class="ps-toggle-thumb"></span></span>
+                <span class="ps-toggle-label">有効</span>
+            </label>
+        </div>
         <label class="ps-field">
             <span class="ps-field-label">自動同期の間隔（分）</span>
             <input type="number" id="ps-sync-interval" class="ps-field-input" min="1" step="1" placeholder="30">
@@ -826,9 +852,10 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     // doc を localStorage に書き込み、画面を再描画（置換）。マージ済みdocを渡す前提
-    function applyDoc(doc) {
+    // replace=true（強制読込）のときは現在画面の保存を行わず、doc で完全置換する
+    function applyDoc(doc, replace) {
         if (!doc || !Array.isArray(doc.pages) || !doc.pages.length) return;
-        savePage(getActive());   // 取りこぼし防止
+        if (!replace) savePage(getActive());   // 取りこぼし防止（マージ時のみ）
         doc.pages.forEach(p => {
             localStorage.setItem(pk(p.id, 'rows'), parseInt(p.rows, 10) || DEFAULT_ROW_COUNT);
             localStorage.setItem(pk(p.id, 'memo'), JSON.stringify(Array.isArray(p.memos)  ? p.memos  : []));
@@ -856,7 +883,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // iPad/iPhone(Safari): input で読込 → ダウンロードで書き出し
     const canFSA = (typeof window.showOpenFilePicker === 'function' &&
                     typeof window.showSaveFilePicker === 'function');
-    const SYNC_FILENAME = 'memo-sync.json';
+    const SYNC_FILENAME = 'm.json';
     let fsHandle = null;   // 指定したファイルハンドル（IndexedDBで永続化）
 
     // --- IndexedDB（FileSystemFileHandle をリロードをまたいで保持）---
@@ -937,7 +964,23 @@ document.addEventListener('DOMContentLoaded', function(){
         await w.close();
     }
 
-    // Mac 経路：（必要ならファイル選択）読み込み→マージ→反映→上書き
+    // 日時スタンプ付きファイル名を生成する（例: m-2026-06-08_14-30.json）
+    function stampedFilename() {
+        const d = new Date(), p = n => String(n).padStart(2, '0');
+        const stamp = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+                    + '_' + p(d.getHours()) + '-' + p(d.getMinutes());
+        return 'm-' + stamp + '.json';
+    }
+
+    // 日時スタンプ付きファイル名で新規保存し、fsHandle を更新する
+    async function writeSaveNew(doc) {
+        const newHandle = await window.showSaveFilePicker({ suggestedName: stampedFilename(), types: JSON_TYPES });
+        await writeHandle(newHandle, doc);
+        fsHandle = newHandle;
+        await idbSet('fileHandle', fsHandle);
+    }
+
+    // Mac 経路：（必要ならファイル選択）読み込み→マージ→反映→日時付きで新規保存
     // 戻り値: 取り込んだremoteのページ数（無ければ0）
     async function syncViaFSA() {
         await ensureHandle();                            // 既存を開く（無ければ新規作成）
@@ -945,7 +988,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let remote = null;
         try { remote = await readHandle(fsHandle); } catch (e) { remote = null; }  // 空/新規は無視
         if (remote) importDocMerge(remote); else savePage(getActive());
-        await writeHandle(fsHandle, exportData());
+        await writeSaveNew(exportData());
         markSynced();
         return remote && Array.isArray(remote.pages) ? remote.pages.length : 0;
     }
@@ -965,18 +1008,36 @@ document.addEventListener('DOMContentLoaded', function(){
             inp.click();
         });
     }
-    function downloadDoc(doc) {
-        const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+    // ファイルとして書き出す。
+    // iPhone/iPad(Safari): Web Share API の共有シートから「ファイルに保存」を選ぶと
+    //   iCloud Drive の任意フォルダに保存先を指定できる。
+    // 非対応環境: 従来の <a download>（ブラウザ既定のダウンロードフォルダ）にフォールバック。
+    async function downloadDoc(doc) {
+        const name = stampedFilename();
+        const json = JSON.stringify(doc, null, 2);
+        // 共有シート経由（保存先を選べる）
+        try {
+            const file = new File([json], name, { type: 'application/json' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: name });
+                return;
+            }
+        } catch (e) {
+            if (e && e.name === 'AbortError') return;   // ユーザーがキャンセル：何もしない
+            // それ以外（共有失敗）は下のダウンロードにフォールバック
+        }
+        // フォールバック：通常ダウンロード
+        const blob = new Blob([json], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = SYNC_FILENAME;
+        a.download = name;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }
     async function syncViaDownload() {
         const remote = await readViaInput();
         if (remote) importDocMerge(remote); else savePage(getActive());
-        downloadDoc(exportData());
+        await downloadDoc(exportData());
         markSynced();
         return remote && Array.isArray(remote.pages) ? remote.pages.length : 0;
     }
@@ -991,11 +1052,9 @@ document.addEventListener('DOMContentLoaded', function(){
     async function forceWrite() {
         savePage(getActive());
         if (canFSA) {
-            await ensureHandle();   // 無ければ既存を開く／新規作成
-            if (!(await ensurePermission(fsHandle))) throw new Error('ファイルへのアクセスが許可されませんでした');
-            await writeHandle(fsHandle, exportData());
+            await writeSaveNew(exportData());
         } else {
-            downloadDoc(exportData());
+            await downloadDoc(exportData());
         }
         markSynced();
     }
@@ -1005,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', function(){
     async function forceRead() {
         let remote = null;
         if (canFSA) {
-            if (!fsHandle) await openExistingFile();   // 既存を開く（新規作成は提案しない）
+            await openExistingFile();   // 強制読込は毎回ファイルを選ばせる（どれを正にするか明示）
             if (!(await ensurePermission(fsHandle))) throw new Error('ファイルへのアクセスが許可されませんでした');
             remote = await readHandle(fsHandle);
         } else {
@@ -1017,7 +1076,7 @@ document.addEventListener('DOMContentLoaded', function(){
         // 置換前のローカルページIDを控え、ファイルに無いページの孤立キーを掃除
         const oldIds = (getPages() || []).map(p => p.id);
         const newIds = new Set(remote.pages.map(p => p.id));
-        applyDoc(remote);   // マージせず置換
+        applyDoc(remote, true);   // マージせず完全置換（現在画面の保存をスキップ）
         oldIds.forEach(id => {
             if (!newIds.has(id)) ['cb', 'memo', 'rows', 'date'].forEach(s => localStorage.removeItem(pk(id, s)));
         });
@@ -1028,7 +1087,9 @@ document.addEventListener('DOMContentLoaded', function(){
     // ===== 未同期フラグ・同期状態・自動同期タイマー =====
     const K_DIRTY    = 'fs02_dirty';
     const K_LASTSYNC = 'fs02_lastsync';
-    const K_INTERVAL = 'fs02_sync_interval_min';
+    const K_INTERVAL   = 'fs02_sync_interval_min';
+    const K_AUTO_SYNC  = 'fs02_auto_sync_enabled';
+    function isAutoSyncEnabled() { return localStorage.getItem(K_AUTO_SYNC) === '1'; }
     function isDirty()      { return localStorage.getItem(K_DIRTY) === '1'; }
     function markDirty()    { localStorage.setItem(K_DIRTY, '1'); updateSyncStatus(); }
     function markSynced()   { localStorage.setItem(K_DIRTY, ''); localStorage.setItem(K_LASTSYNC, new Date().toISOString()); updateSyncStatus(); }
@@ -1056,6 +1117,7 @@ document.addEventListener('DOMContentLoaded', function(){
     function armSyncTimer() {
         if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
         if (!canFSA) return;                         // 自動同期は直接上書きできるMacのみ
+        if (!isAutoSyncEnabled()) return;            // スイッチOFFなら起動しない
         syncTimer = setInterval(async () => {
             if (!navigator.onLine || !fsHandle) return;
             try {
@@ -1547,18 +1609,20 @@ document.addEventListener('DOMContentLoaded', function(){
     const overlay = document.getElementById('ps-settings-overlay');
     const titleInput = document.getElementById('ps-page-title');
 
-    const deviceNameInput = document.getElementById('ps-device-name');
-    const intervalInput   = document.getElementById('ps-sync-interval');
-    const syncNowBtn      = document.getElementById('ps-sync-now');
-    const pickFileBtn     = document.getElementById('ps-pick-file');
-    const forceWriteBtn   = document.getElementById('ps-force-write');
-    const forceReadBtn    = document.getElementById('ps-force-read');
+    const deviceNameInput  = document.getElementById('ps-device-name');
+    const intervalInput    = document.getElementById('ps-sync-interval');
+    const autoSyncToggle   = document.getElementById('ps-auto-sync-enabled');
+    const syncNowBtn       = document.getElementById('ps-sync-now');
+    const pickFileBtn      = document.getElementById('ps-pick-file');
+    const forceWriteBtn    = document.getElementById('ps-force-write');
+    const forceReadBtn     = document.getElementById('ps-force-read');
 
     function applyTitle(t) { if (t) document.title = t; }
     function openSettings() {
         titleInput.value = localStorage.getItem(K_TITLE) || document.title || '';
         deviceNameInput.value = getDevice().name || '';
         intervalInput.value = getIntervalMin();
+        autoSyncToggle.checked = isAutoSyncEnabled();
         pickFileBtn.style.display = canFSA ? '' : 'none';  // Mac のみファイル指定を表示
         updateSyncStatus();
         overlay.classList.add('open');
@@ -1576,6 +1640,7 @@ document.addEventListener('DOMContentLoaded', function(){
         setDeviceName(deviceNameInput.value);
         const iv = parseInt(intervalInput.value, 10);
         if (iv && iv > 0) localStorage.setItem(K_INTERVAL, iv);
+        localStorage.setItem(K_AUTO_SYNC, autoSyncToggle.checked ? '1' : '0');
         armSyncTimer();
         renderSwitcher();
         closeSettings();
@@ -1693,9 +1758,18 @@ document.addEventListener('DOMContentLoaded', function(){
         requestAnimationFrame(() => {
             const panel = document.getElementById('page-switcher');
             const pr = panel.getBoundingClientRect();
-            const tr = el.getBoundingClientRect();
             const tw = tip.offsetWidth, th = tip.offsetHeight;
-            const x = pr.left - tw - 8;
+            // スマホ：UI（パネル）のすぐ真上に2px離して表示（右端揃え・画面外clamp）
+            if (window.innerWidth <= 640) {
+                const x = pr.right - tw;
+                const y = pr.top - th - 2;
+                tip.style.left = Math.max(8, Math.min(window.innerWidth - tw - 8, x)) + 'px';
+                tip.style.top  = Math.max(8, y) + 'px';
+                return;
+            }
+            // PC：パネルの左側に表示
+            const tr = el.getBoundingClientRect();
+            const x = pr.left - tw - 2;
             const y = tr.top + (tr.height - th) / 2;
             tip.style.left = Math.max(8, x) + 'px';
             tip.style.top  = Math.max(8, Math.min(window.innerHeight - th - 8, y)) + 'px';
@@ -1712,7 +1786,14 @@ document.addEventListener('DOMContentLoaded', function(){
         if (el.closest('#page-switcher')) positionTipByPanel(el);
     });
     document.addEventListener('mousemove', e => {
-        if (!tipTarget || tipTarget.closest('#page-switcher')) return;
+        if (!tipTarget) return;
+        if (tipTarget.closest('#page-switcher')) return;   // パネル内は固定（追従しない）
+        // 再描画でtipTargetがDOMから外れた場合は追従させず隠す（位置ズレ防止）
+        if (!document.body.contains(tipTarget)) {
+            tip.classList.remove('visible');
+            tipTarget = null;
+            return;
+        }
         const vw = window.innerWidth, vh = window.innerHeight;
         let x = e.clientX + 12, y = e.clientY - 30;
         const tw = tip.offsetWidth, th = tip.offsetHeight;

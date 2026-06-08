@@ -1,9 +1,12 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 2001;
+const HTTPS_PORT = 2001;       // iPhone等からのアクセス用（Web Share API はHTTPS必須）
+const HTTP_PORT  = 2000;       // 証明書を信頼させる前の一時アクセス用フォールバック
 const ROOT = __dirname;
+const CERT_DIR = path.join(ROOT, 'certs');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -64,7 +67,8 @@ async function handleScreenshot(req, res) {
   }
 }
 
-http.createServer(async (req, res) => {
+// HTTP/HTTPS 共通のリクエストハンドラ
+async function handler(req, res) {
   // CORS ヘッダー
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -106,6 +110,23 @@ http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
     res.end(data);
   });
-}).listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
-});
+}
+
+// 証明書があれば HTTPS（2001）を起動。Web Share API はセキュアコンテキスト必須のため。
+const keyPath  = path.join(CERT_DIR, 'key.pem');
+const certPath = path.join(CERT_DIR, 'cert.pem');
+if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+  const opts = { key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) };
+  https.createServer(opts, handler).listen(HTTPS_PORT, () => {
+    console.log(`HTTPS server running at https://localhost:${HTTPS_PORT}/`);
+  });
+  // HTTP（2000）も残す：iPhoneに証明書を信頼させる前のフォールバック用
+  http.createServer(handler).listen(HTTP_PORT, () => {
+    console.log(`HTTP  server running at http://localhost:${HTTP_PORT}/`);
+  });
+} else {
+  // 証明書が無い場合は従来通り HTTP のみ（2001）
+  http.createServer(handler).listen(HTTPS_PORT, () => {
+    console.log(`HTTP server running at http://localhost:${HTTPS_PORT}/  (証明書が無いためHTTP）`);
+  });
+}
