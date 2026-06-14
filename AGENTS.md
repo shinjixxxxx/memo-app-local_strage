@@ -1,6 +1,6 @@
-﻿# CLAUDE.md
+﻿# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## 概要
 
@@ -38,7 +38,7 @@ npm run server
 
 ## メモリ
 
-「記憶して」と言われた場合はこの CLAUDE.md に直接追記する。
+「記憶して」と言われた場合はこの AGENTS.md に直接追記する。
 
 - ポート2001でサーバ起動。LAN/外部URLやスマホからのアクセスも同ポート。
 - フロートUIはコンパクト優先（スペース節約が核コンセプト）。
